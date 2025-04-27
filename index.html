@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>X-Ball Paintball Game - v1.4 (Menu Cleanup)</title> <script src="https://cdn.tailwindcss.com"></script>
+    <title>X-Ball Paintball Game - v1.5 (HUD BG)</title> <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
     <style>
@@ -61,7 +61,11 @@
             margin-bottom: 0.5rem; /* Space below top panel */
             flex-wrap: wrap; /* Allow wrapping on smaller screens */
             gap: 1rem; /* Space between wrapped items */
-            background-color: rgba(45, 55, 72, 0.5); /* Semi-transparent background */
+            /* NEW: HUD Background */
+            background-image: linear-gradient(rgba(45, 55, 72, 0.7), rgba(45, 55, 72, 0.7)), url('https://i.postimg.cc/FHCvDJbL/paintballhud.png');
+            background-size: cover;
+            background-position: center;
+            background-color: rgba(45, 55, 72, 0.7); /* Fallback/Blend color */
             border: 2px solid #4a5568; /* Border */
             border-radius: 6px; /* Rounded corners */
         }
@@ -75,6 +79,10 @@
             order: 1; /* Position on the left */
             font-family: 'Press Start 2P', cursive; /* Ensure font */
         }
+        /* Add text shadow for readability over background */
+        .team-scores div {
+             text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.8);
+        }
         /* Game stats container (timer, overall score) */
         .game-stats {
             display: flex;
@@ -87,6 +95,7 @@
         .timer {
             font-size: 1.2rem;
             color: #fbd38d; /* Orange-yellow timer */
+            text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.8); /* Add text shadow */
         }
         /* Overall score display style (round, wins) */
         .overall-score {
@@ -94,6 +103,7 @@
             color: #a0aec0; /* Lighter gray */
             margin-top: 0.25rem;
             text-align: center;
+            text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.8); /* Add text shadow */
         }
         /* Score colors are set dynamically via JS */
         .score-team1 {}
@@ -110,7 +120,11 @@
             margin-top: 0.5rem; /* Space above bottom panel */
             flex-wrap: wrap; /* Allow wrapping */
             gap: 0.5rem;
-            background-color: rgba(45, 55, 72, 0.5); /* Semi-transparent background */
+            /* NEW: HUD Background */
+            background-image: linear-gradient(rgba(45, 55, 72, 0.7), rgba(45, 55, 72, 0.7)), url('https://i.postimg.cc/FHCvDJbL/paintballhud.png');
+            background-size: cover;
+            background-position: center;
+            background-color: rgba(45, 55, 72, 0.7); /* Fallback/Blend color */
             border: 2px solid #4a5568;
             border-radius: 6px;
         }
@@ -125,11 +139,13 @@
         }
          .info-panel div { /* Style individual lines within info panel */
             margin-bottom: 0.2rem;
+            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.7); /* Add text shadow */
          }
          /* Style for ammo display */
          .ammo-info {
              font-weight: bold;
              color: #fbd38d; /* Orange-yellow like timer */
+             text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.7); /* Add text shadow */
          }
          .reloading-text {
              color: #f56565; /* Red when reloading */
@@ -155,6 +171,8 @@
              box-shadow: 0 3px 5px rgba(0,0,0,0.4); /* Button shadow */
              white-space: nowrap; /* Prevent button text wrapping */
              text-transform: uppercase; /* Uppercase button text */
+             /* Slight background dimming for buttons */
+             background-color: rgba(0,0,0,0.2);
         }
         /* Button pressed effect */
         .game-button:active {
@@ -164,23 +182,23 @@
 
         /* Reset Button Specific Style */
         .reset-button {
-             background-color: #fbd38d; color: #2d3748; border-color: #f6ad55; /* Orange/Yellow */
+             background-color: rgba(251, 211, 141, 0.8); color: #2d3748; border-color: #f6ad55; /* Orange/Yellow */
         }
-        .reset-button:hover { background-color: #f6ad55; } /* Darker on hover */
+        .reset-button:hover { background-color: rgba(246, 173, 85, 0.9); } /* Darker on hover */
 
         /* Menu Button Specific Style */
         .menu-button {
-             background-color: #f56565; color: #1a202c; border-color: #c53030; /* Red */
+             background-color: rgba(245, 101, 101, 0.8); color: #1a202c; border-color: #c53030; /* Red */
         }
-        .menu-button:hover { background-color: #e53e3e; } /* Darker on hover */
+        .menu-button:hover { background-color: rgba(229, 62, 62, 0.9); } /* Darker on hover */
 
         /* Mute Button Specific Style */
         .mute-button {
-             background-color: #a0aec0; color: #1a202c; border-color: #718096; /* Gray */
+             background-color: rgba(160, 174, 192, 0.8); color: #1a202c; border-color: #718096; /* Gray */
         }
-        .mute-button:hover { background-color: #718096; } /* Darker gray on hover */
+        .mute-button:hover { background-color: rgba(113, 128, 150, 0.9); } /* Darker gray on hover */
         .mute-button.muted { /* Style when muted */
-             background-color: #4a5568; color: #a0aec0; border-color: #2d3748;
+             background-color: rgba(74, 85, 104, 0.8); color: #a0aec0; border-color: #2d3748;
         }
 
 
@@ -662,8 +680,7 @@
                         </div>
                         <div class="control-row">
                             <span class="control-label">Reload:</span>
-                            <span class="control-key-display" id="p2-reload-key">ShiftRight</span>
-                            <button class="change-key-button" data-action="p2Reload">Change</button>
+                            <span class="control-key-display" id="p2-reload-key">\</span> <button class="change-key-button" data-action="p2Reload">Change</button>
                         </div>
                     </div>
                 </div>
@@ -816,9 +833,10 @@
         const PLAYER_ANIMATION_SPEED = 8;
 
         // --- Control Mapping Object ---
+        // UPDATED: Default P2 Reload Key
         let controls = {
             p1Up: 'w', p1Down: 's', p1Left: 'a', p1Right: 'd', p1Reload: 'r',
-            p2Up: 'ArrowUp', p2Down: 'ArrowDown', p2Left: 'ArrowLeft', p2Right: 'ArrowRight', p2Shoot: 'Enter', p2Reload: 'ShiftRight'
+            p2Up: 'ArrowUp', p2Down: 'ArrowDown', p2Left: 'ArrowLeft', p2Right: 'ArrowRight', p2Shoot: 'Enter', p2Reload: '\\' // Changed default
         };
         const defaultControls = { ...controls };
 
@@ -862,37 +880,10 @@
         function hasLineOfSight(x1, y1, x2, y2) { /* ... same ... */ for (const bunker of bunkers) { const rect = { x: bunker.x, y: bunker.y, width: bunker.width, height: bunker.height }; const bunkerCenterX = rect.x + rect.width / 2; const bunkerCenterY = rect.y + rect.height / 2; if (distToSegmentSquared(x1, y1, x2, y2, bunkerCenterX, bunkerCenterY) < Math.max(rect.width, rect.height)**2 * 1.5) { if (lineIntersectsRect(x1, y1, x2, y2, rect)) return false; } } return true; }
 
         // --- Bunker Setup Functions (Refactored) ---
-        // These now RETURN an array of bunkers calculated for the given dimensions
-
-        function setupBunkersNXL2023(targetWidth, targetHeight) {
-            const layoutBunkers = [];
-            const w = targetWidth; const h = targetHeight; const BSM = BUNKER_SIZE_MULTIPLIER;
-            const smallCanW = w * 0.03 * BSM; const smallCanH = h * 0.06 * BSM; const tallCanW = w * 0.035 * BSM; const tallCanH = h * 0.12 * BSM; const brickW = w * 0.06 * BSM; const brickH = h * 0.06 * BSM; const templeW = w * 0.05 * BSM; const templeH = h * 0.15 * BSM; const doritoW = w * 0.05 * BSM; const doritoH = h * 0.15 * BSM; const snakeBeamW = w * 0.12 * BSM; const snakeBeamH = h * 0.05 * BSM; const centerBaseW = w * 0.08 * BSM; const centerBaseH = h * 0.18 * BSM;
-            const add = (props, shape = 'rect') => layoutBunkers.push({ shape, ...props });
-            const addSym = (props, shape = 'rect') => { const mirroredX = w - props.x - props.width; add({ ...props }, shape); add({ ...props, x: mirroredX }, shape); };
-            addSym({ x: w * 0.05, y: h * 0.1, width: brickW * 1.2, height: brickH * 1.2 }); addSym({ x: w * 0.05, y: h * 0.9 - brickH * 1.2, width: brickW * 1.2, height: brickH * 1.2 }); add({ x: w * 0.5 - tallCanW / 2, y: h * 0.05, width: tallCanW, height: tallCanH }); add({ x: w * 0.5 - tallCanW / 2, y: h * 0.95 - tallCanH, width: tallCanW, height: tallCanH }); addSym({ x: w * 0.08, y: h * 0.75, width: brickW, height: brickH }); addSym({ x: w * 0.2, y: h * 0.95 - snakeBeamH, width: snakeBeamW, height: snakeBeamH }); addSym({ x: w * 0.35, y: h * 0.95 - snakeBeamH, width: snakeBeamW * 0.8, height: snakeBeamH }); addSym({ x: w * 0.15, y: h * 0.8, width: smallCanW, height: smallCanH }); addSym({ x: w*0.18, y: h * 0.9 - smallCanH, width: smallCanW, height: smallCanH}); addSym({ x: w * 0.15, y: h * 0.15, width: doritoW, height: doritoH }, 'dorito'); addSym({ x: w * 0.28, y: h * 0.08, width: doritoW, height: doritoH }, 'dorito'); addSym({ x: w * 0.18, y: h * 0.3, width: smallCanW, height: smallCanH }); addSym({ x: w * 0.35, y: h * 0.2, width: smallCanW, height: smallCanH }); add({ x: w * 0.5 - centerBaseW / 2, y: h * 0.5 - centerBaseH / 2, width: centerBaseW, height: centerBaseH }); addSym({ x: w * 0.38, y: h * 0.5 - templeH / 2, width: templeW, height: templeH }, 'dorito'); addSym({ x: w * 0.3, y: h * 0.35, width: brickW, height: brickH }); addSym({ x: w * 0.3, y: h * 0.65 - brickH, width: brickW, height: brickH }); addSym({ x: w * 0.42, y: h * 0.25, width: smallCanW, height: smallCanH }); addSym({ x: w * 0.42, y: h * 0.75 - smallCanH, width: smallCanW, height: smallCanH });
-            return layoutBunkers;
-        }
-
-        function setupBunkersNXL2020(targetWidth, targetHeight) {
-            const layoutBunkers = [];
-            const w = targetWidth; const h = targetHeight; const BSM = BUNKER_SIZE_MULTIPLIER;
-            const smallCanW = w * 0.03 * BSM; const smallCanH = h * 0.06 * BSM; const tallCakeW = w * 0.06 * BSM; const tallCakeH = h * 0.12 * BSM; const brickW = w * 0.06 * BSM; const brickH = h * 0.06 * BSM; const doritoW = w * 0.05 * BSM; const doritoH = h * 0.15 * BSM; const snakeBeamW = w * 0.12 * BSM; const snakeBeamH = h * 0.05 * BSM; const centerBaseW = w * 0.05 * BSM; const centerBaseH = h * 0.18 * BSM; const pinW = w * 0.02 * BSM; const pinH = h * 0.04 * BSM;
-            const add = (props, shape = 'rect') => layoutBunkers.push({ shape, ...props });
-            const addSym = (props, shape = 'rect') => { const mirroredX = w - props.x - props.width; add({ ...props }, shape); add({ ...props, x: mirroredX }, shape); };
-            addSym({ x: w * 0.05, y: h * 0.1, width: tallCakeW, height: tallCakeH }); add({ x: w * 0.5 - tallCakeW / 2, y: h * 0.05, width: tallCakeW, height: tallCakeH }); add({ x: w * 0.5 - tallCakeW / 2, y: h * 0.95 - tallCakeH, width: tallCakeW, height: tallCakeH }); addSym({ x: w * 0.15, y: h * 0.95 - snakeBeamH, width: snakeBeamW * 0.8, height: snakeBeamH }); addSym({ x: w * 0.3, y: h * 0.95 - snakeBeamH, width: snakeBeamW * 0.8, height: snakeBeamH }); addSym({ x: w * 0.4, y: h * 0.95 - snakeBeamH, width: snakeBeamW * 0.5, height: snakeBeamH }); addSym({ x: w * 0.08, y: h * 0.75, width: brickW*0.8, height: brickH*0.8 }); addSym({ x: w * 0.1, y: h * 0.2, width: doritoW, height: doritoH }, 'dorito'); addSym({ x: w * 0.25, y: h * 0.1, width: doritoW, height: doritoH }, 'dorito'); addSym({ x: w * 0.38, y: h * 0.05, width: doritoW, height: doritoH }, 'dorito'); addSym({ x: w * 0.08, y: h * 0.25, width: brickW*0.8, height: brickH*0.8 }); add({ x: w * 0.5 - centerBaseW / 2, y: h * 0.3 - centerBaseH / 2, width: centerBaseW, height: centerBaseH }); add({ x: w * 0.5 - centerBaseW / 2, y: h * 0.7 - centerBaseH / 2, width: centerBaseW, height: centerBaseH }); addSym({ x: w * 0.4, y: h * 0.35, width: pinW, height: pinH }); addSym({ x: w * 0.4, y: h * 0.65 - pinH, width: pinW, height: pinH }); addSym({ x: w * 0.2, y: h * 0.65, width: brickW, height: brickH }); addSym({ x: w * 0.35, y: h * 0.5 - brickH/2, width: brickW, height: brickH });
-            return layoutBunkers;
-        }
-
-        function setupBunkersWorldCup(targetWidth, targetHeight) {
-            const layoutBunkers = [];
-            const w = targetWidth; const h = targetHeight; const BSM = BUNKER_SIZE_MULTIPLIER;
-            const doritoW = w * 0.05 * BSM; const doritoH = h * 0.15 * BSM; const canW = w * 0.035 * BSM; const canH = h * 0.10 * BSM; const brickW = w * 0.06 * BSM; const brickH = h * 0.06 * BSM; const beamW = w * 0.15 * BSM; const beamH = h * 0.05 * BSM; const centerW = w * 0.08 * BSM; const centerH = h * 0.12 * BSM;
-            const add = (props, shape = 'rect') => layoutBunkers.push({ shape, ...props });
-            const addSym = (props, shape = 'rect') => { const mirroredX = w - props.x - props.width; add({ ...props }, shape); add({ ...props, x: mirroredX }, shape); };
-            addSym({ x: w * 0.08, y: h * 0.1, width: doritoW, height: doritoH }, 'dorito'); addSym({ x: w * 0.2, y: h * 0.08, width: doritoW * 0.8, height: doritoH * 0.8 }, 'dorito'); add({ x: w * 0.5 - beamW / 2, y: h * 0.1, width: beamW, height: beamH }); addSym({ x: w * 0.05, y: h * 0.3, width: canW, height: canH }); addSym({ x: w * 0.15, y: h * 0.25, width: doritoW, height: doritoH }, 'dorito'); addSym({ x: w * 0.3, y: h * 0.2, width: canW, height: canH }); addSym({ x: w * 0.05, y: h * 0.9 - brickH, width: brickW, height: brickH }); addSym({ x: w * 0.15, y: h * 0.95 - beamH, width: beamW, height: beamH }); addSym({ x: w * 0.32, y: h * 0.95 - beamH, width: beamW * 0.7, height: beamH }); addSym({ x: w * 0.25, y: h * 0.8, width: canW, height: canH }); addSym({ x: w * 0.38, y: h * 0.35, width: brickW, height: brickH }); addSym({ x: w * 0.38, y: h * 0.65 - brickH, width: brickW, height: brickH }); add({ x: w * 0.5 - centerW / 2, y: h * 0.35 - centerH / 2, width: centerW, height: centerH }); add({ x: w * 0.5 - centerW / 2, y: h * 0.65 - centerH / 2, width: centerW, height: centerH }); addSym({ x: w*0.45, y: h*0.5 - canH*0.4/2, width: canW*0.8, height: canH*0.8});
-            return layoutBunkers;
-        }
+        /* ... same refactored bunker setup functions: setupBunkersNXL2023, setupBunkersNXL2020, setupBunkersWorldCup ... */
+        function setupBunkersNXL2023(targetWidth, targetHeight) { const layoutBunkers = []; const w = targetWidth; const h = targetHeight; const BSM = BUNKER_SIZE_MULTIPLIER; const smallCanW = w * 0.03 * BSM; const smallCanH = h * 0.06 * BSM; const tallCanW = w * 0.035 * BSM; const tallCanH = h * 0.12 * BSM; const brickW = w * 0.06 * BSM; const brickH = h * 0.06 * BSM; const templeW = w * 0.05 * BSM; const templeH = h * 0.15 * BSM; const doritoW = w * 0.05 * BSM; const doritoH = h * 0.15 * BSM; const snakeBeamW = w * 0.12 * BSM; const snakeBeamH = h * 0.05 * BSM; const centerBaseW = w * 0.08 * BSM; const centerBaseH = h * 0.18 * BSM; const add = (props, shape = 'rect') => layoutBunkers.push({ shape, ...props }); const addSym = (props, shape = 'rect') => { const mirroredX = w - props.x - props.width; add({ ...props }, shape); add({ ...props, x: mirroredX }, shape); }; addSym({ x: w * 0.05, y: h * 0.1, width: brickW * 1.2, height: brickH * 1.2 }); addSym({ x: w * 0.05, y: h * 0.9 - brickH * 1.2, width: brickW * 1.2, height: brickH * 1.2 }); add({ x: w * 0.5 - tallCanW / 2, y: h * 0.05, width: tallCanW, height: tallCanH }); add({ x: w * 0.5 - tallCanW / 2, y: h * 0.95 - tallCanH, width: tallCanW, height: tallCanH }); addSym({ x: w * 0.08, y: h * 0.75, width: brickW, height: brickH }); addSym({ x: w * 0.2, y: h * 0.95 - snakeBeamH, width: snakeBeamW, height: snakeBeamH }); addSym({ x: w * 0.35, y: h * 0.95 - snakeBeamH, width: snakeBeamW * 0.8, height: snakeBeamH }); addSym({ x: w * 0.15, y: h * 0.8, width: smallCanW, height: smallCanH }); addSym({ x: w*0.18, y: h * 0.9 - smallCanH, width: smallCanW, height: smallCanH}); addSym({ x: w * 0.15, y: h * 0.15, width: doritoW, height: doritoH }, 'dorito'); addSym({ x: w * 0.28, y: h * 0.08, width: doritoW, height: doritoH }, 'dorito'); addSym({ x: w * 0.18, y: h * 0.3, width: smallCanW, height: smallCanH }); addSym({ x: w * 0.35, y: h * 0.2, width: smallCanW, height: smallCanH }); add({ x: w * 0.5 - centerBaseW / 2, y: h * 0.5 - centerBaseH / 2, width: centerBaseW, height: centerBaseH }); addSym({ x: w * 0.38, y: h * 0.5 - templeH / 2, width: templeW, height: templeH }, 'dorito'); addSym({ x: w * 0.3, y: h * 0.35, width: brickW, height: brickH }); addSym({ x: w * 0.3, y: h * 0.65 - brickH, width: brickW, height: brickH }); addSym({ x: w * 0.42, y: h * 0.25, width: smallCanW, height: smallCanH }); addSym({ x: w * 0.42, y: h * 0.75 - smallCanH, width: smallCanW, height: smallCanH }); return layoutBunkers; }
+        function setupBunkersNXL2020(targetWidth, targetHeight) { const layoutBunkers = []; const w = targetWidth; const h = targetHeight; const BSM = BUNKER_SIZE_MULTIPLIER; const smallCanW = w * 0.03 * BSM; const smallCanH = h * 0.06 * BSM; const tallCakeW = w * 0.06 * BSM; const tallCakeH = h * 0.12 * BSM; const brickW = w * 0.06 * BSM; const brickH = h * 0.06 * BSM; const doritoW = w * 0.05 * BSM; const doritoH = h * 0.15 * BSM; const snakeBeamW = w * 0.12 * BSM; const snakeBeamH = h * 0.05 * BSM; const centerBaseW = w * 0.05 * BSM; const centerBaseH = h * 0.18 * BSM; const pinW = w * 0.02 * BSM; const pinH = h * 0.04 * BSM; const add = (props, shape = 'rect') => layoutBunkers.push({ shape, ...props }); const addSym = (props, shape = 'rect') => { const mirroredX = w - props.x - props.width; add({ ...props }, shape); add({ ...props, x: mirroredX }, shape); }; addSym({ x: w * 0.05, y: h * 0.1, width: tallCakeW, height: tallCakeH }); add({ x: w * 0.5 - tallCakeW / 2, y: h * 0.05, width: tallCakeW, height: tallCakeH }); add({ x: w * 0.5 - tallCakeW / 2, y: h * 0.95 - tallCakeH, width: tallCakeW, height: tallCakeH }); addSym({ x: w * 0.15, y: h * 0.95 - snakeBeamH, width: snakeBeamW * 0.8, height: snakeBeamH }); addSym({ x: w * 0.3, y: h * 0.95 - snakeBeamH, width: snakeBeamW * 0.8, height: snakeBeamH }); addSym({ x: w * 0.4, y: h * 0.95 - snakeBeamH, width: snakeBeamW * 0.5, height: snakeBeamH }); addSym({ x: w * 0.08, y: h * 0.75, width: brickW*0.8, height: brickH*0.8 }); addSym({ x: w * 0.1, y: h * 0.2, width: doritoW, height: doritoH }, 'dorito'); addSym({ x: w * 0.25, y: h * 0.1, width: doritoW, height: doritoH }, 'dorito'); addSym({ x: w * 0.38, y: h * 0.05, width: doritoW, height: doritoH }, 'dorito'); addSym({ x: w * 0.08, y: h * 0.25, width: brickW*0.8, height: brickH*0.8 }); add({ x: w * 0.5 - centerBaseW / 2, y: h * 0.3 - centerBaseH / 2, width: centerBaseW, height: centerBaseH }); add({ x: w * 0.5 - centerBaseW / 2, y: h * 0.7 - centerBaseH / 2, width: centerBaseW, height: centerBaseH }); addSym({ x: w * 0.4, y: h * 0.35, width: pinW, height: pinH }); addSym({ x: w * 0.4, y: h * 0.65 - pinH, width: pinW, height: pinH }); addSym({ x: w * 0.2, y: h * 0.65, width: brickW, height: brickH }); addSym({ x: w * 0.35, y: h * 0.5 - brickH/2, width: brickW, height: brickH }); return layoutBunkers; }
+        function setupBunkersWorldCup(targetWidth, targetHeight) { const layoutBunkers = []; const w = targetWidth; const h = targetHeight; const BSM = BUNKER_SIZE_MULTIPLIER; const doritoW = w * 0.05 * BSM; const doritoH = h * 0.15 * BSM; const canW = w * 0.035 * BSM; const canH = h * 0.10 * BSM; const brickW = w * 0.06 * BSM; const brickH = h * 0.06 * BSM; const beamW = w * 0.15 * BSM; const beamH = h * 0.05 * BSM; const centerW = w * 0.08 * BSM; const centerH = h * 0.12 * BSM; const add = (props, shape = 'rect') => layoutBunkers.push({ shape, ...props }); const addSym = (props, shape = 'rect') => { const mirroredX = w - props.x - props.width; add({ ...props }, shape); add({ ...props, x: mirroredX }, shape); }; addSym({ x: w * 0.08, y: h * 0.1, width: doritoW, height: doritoH }, 'dorito'); addSym({ x: w * 0.2, y: h * 0.08, width: doritoW * 0.8, height: doritoH * 0.8 }, 'dorito'); add({ x: w * 0.5 - beamW / 2, y: h * 0.1, width: beamW, height: beamH }); addSym({ x: w * 0.05, y: h * 0.3, width: canW, height: canH }); addSym({ x: w * 0.15, y: h * 0.25, width: doritoW, height: doritoH }, 'dorito'); addSym({ x: w * 0.3, y: h * 0.2, width: canW, height: canH }); addSym({ x: w * 0.05, y: h * 0.9 - brickH, width: brickW, height: brickH }); addSym({ x: w * 0.15, y: h * 0.95 - beamH, width: beamW, height: beamH }); addSym({ x: w * 0.32, y: h * 0.95 - beamH, width: beamW * 0.7, height: beamH }); addSym({ x: w * 0.25, y: h * 0.8, width: canW, height: canH }); addSym({ x: w * 0.38, y: h * 0.35, width: brickW, height: brickH }); addSym({ x: w * 0.38, y: h * 0.65 - brickH, width: brickW, height: brickH }); add({ x: w * 0.5 - centerW / 2, y: h * 0.35 - centerH / 2, width: centerW, height: centerH }); add({ x: w * 0.5 - centerW / 2, y: h * 0.65 - centerH / 2, width: centerW, height: centerH }); addSym({ x: w*0.45, y: h*0.5 - canH*0.4/2, width: canW*0.8, height: canH*0.8}); return layoutBunkers; }
 
         // NEW: Sets up the main game bunkers using the refactored functions
         function setupMainBunkers(layout) {
@@ -1248,6 +1239,7 @@
                 if (key === ' ') displayKey = 'Space';
                 if (key.startsWith('Arrow')) displayKey = key.substring(5);
                 if (key === 'ShiftRight') displayKey = 'RShift'; // Handle ShiftRight display
+                if (key === '\\') displayKey = '\\'; // Ensure backslash displays correctly
                 displayElement.textContent = displayKey;
                 displayElement.classList.remove('rebinding');
             }
@@ -1262,6 +1254,7 @@
                 if (key === ' ') return 'Space';
                 if (key.startsWith('Arrow')) return key.substring(5);
                 if (key === 'ShiftRight') return 'RShift'; // Nicer display
+                if (key === '\\') return '\\'; // Display backslash
                 return key.toUpperCase();
             };
             // Use controls object for reload keys
@@ -1306,7 +1299,7 @@
             populateTeamSelects();
             updateScoreDisplay();
             resizeCanvas();
-            updateAllControlDisplays();
+            updateAllControlDisplays(); // Update controls display based on defaults
 
             // Draw initial mini-maps
             const mapOptions = document.querySelectorAll('input[name="mapLayout"]');
