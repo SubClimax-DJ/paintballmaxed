@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>X-Ball Paintball Game - Added World Cup Layout</title>
+    <title>X-Ball Paintball Game - Bunker Shapes & Effects</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
@@ -659,6 +659,10 @@
         let isRebinding = false;
         let actionToRebind = null;
         let temporaryKeyListener = null;
+        // NEW: Screen Shake State
+        let screenShakeIntensity = 0;
+        let screenShakeDuration = 0;
+        let screenShakeStartTime = 0;
 
 
         // --- Selected Game Options ---
@@ -686,8 +690,11 @@
         const MUZZLE_FLASH_DURATION = 80; const MUZZLE_FLASH_RADIUS = 8;
         const PARTICLE_COUNT_HIT = 5; const PARTICLE_SPEED = 2;
         const PARTICLE_DURATION = 400; const PARTICLE_RADIUS = 1.5;
+        const PARTICLE_GRAVITY = 0.03; // NEW: Gravity for particles
         const TRAIL_PARTICLE_DURATION = 150; const TRAIL_PARTICLE_RADIUS = 2;
         const ELIMINATION_CUE_DURATION = 500;
+        const SCREEN_SHAKE_MAX_INTENSITY = 3; // Max pixel offset
+        const SCREEN_SHAKE_HIT_DURATION = 250; // Milliseconds shake lasts on hit
 
         // --- Sprite/Animation Constants ---
         const PLAYER_SPRITE_WIDTH = PLAYER_RADIUS * 1.8; const PLAYER_SPRITE_HEIGHT = PLAYER_RADIUS * 1.8;
@@ -757,48 +764,82 @@
         function hasLineOfSight(x1, y1, x2, y2) { /* ... same ... */ for (const bunker of bunkers) { const rect = { x: bunker.x, y: bunker.y, width: bunker.width, height: bunker.height }; const bunkerCenterX = rect.x + rect.width / 2; const bunkerCenterY = rect.y + rect.height / 2; if (distToSegmentSquared(x1, y1, x2, y2, bunkerCenterX, bunkerCenterY) < Math.max(rect.width, rect.height)**2 * 1.5) { if (lineIntersectsRect(x1, y1, x2, y2, rect)) return false; } } return true; }
 
         // --- Bunker Setup Functions ---
-        const addBunker = (name, props) => { /* ... same ... */ const bunker = { name, shape: 'rect', ...props }; bunkers.push(bunker); if (name) bunkerLookup[name] = bunker; };
-        const addSymmetrical = (baseName, props) => { /* ... same ... */ const w = canvas.width; const BSM = BUNKER_SIZE_MULTIPLIER; const adjustedX = props.x + (props.width / BSM - props.width) / 2; const adjustedY = props.y + (props.height / BSM - props.height) / 2; const mirroredX = w - adjustedX - props.width; addBunker(`${baseName}_L`, { ...props, x: adjustedX, y: adjustedY }); addBunker(`${baseName}_R`, { ...props, x: mirroredX, y: adjustedY }); };
-        function setupBunkersNXL2023() { /* ... same ... */ bunkers.length = 0; bunkerLookup = {}; const w = canvas.width; const h = canvas.height; const BSM = BUNKER_SIZE_MULTIPLIER; console.log(`Setting up bunkers: NXL 2023 on ${w}x${h}`); const smallCanW = w * 0.03 * BSM; const smallCanH = h * 0.06 * BSM; const tallCanW = w * 0.035 * BSM; const tallCanH = h * 0.12 * BSM; const brickW = w * 0.06 * BSM; const brickH = h * 0.06 * BSM; const templeW = w * 0.05 * BSM; const templeH = h * 0.15 * BSM; const doritoW = w * 0.05 * BSM; const doritoH = h * 0.15 * BSM; const snakeBeamW = w * 0.12 * BSM; const snakeBeamH = h * 0.05 * BSM; const centerBaseW = w * 0.08 * BSM; const centerBaseH = h * 0.18 * BSM; addSymmetrical('backCorner', { x: w * 0.05, y: h * 0.1, width: brickW * 1.2, height: brickH * 1.2 }); addSymmetrical('backCornerSnake', { x: w * 0.05, y: h * 0.9 - brickH * 1.2, width: brickW * 1.2, height: brickH * 1.2 }); addBunker('backCenter_T', { x: w * 0.5 - tallCanW / 2, y: h * 0.05, width: tallCanW, height: tallCanH }); addBunker('backCenter_B', { x: w * 0.5 - tallCanW / 2, y: h * 0.95 - tallCanH, width: tallCanW, height: tallCanH }); addSymmetrical('snakeSide', { x: w * 0.08, y: h * 0.75, width: brickW, height: brickH }); addSymmetrical('snake1', { x: w * 0.2, y: h * 0.95 - snakeBeamH, width: snakeBeamW, height: snakeBeamH }); addSymmetrical('snake2', { x: w * 0.35, y: h * 0.95 - snakeBeamH, width: snakeBeamW * 0.8, height: snakeBeamH }); addSymmetrical('snakeMini', { x: w * 0.15, y: h * 0.8, width: smallCanW, height: smallCanH }); addSymmetrical('snakeBackCan', { x: w*0.18, y: h * 0.9 - smallCanH, width: smallCanW, height: smallCanH}); addSymmetrical('dorito1', { x: w * 0.15, y: h * 0.15, width: doritoW, height: doritoH }); addSymmetrical('dorito2', { x: w * 0.28, y: h * 0.08, width: doritoW, height: doritoH }); addSymmetrical('doritoSideCan', { x: w * 0.18, y: h * 0.3, width: smallCanW, height: smallCanH }); addSymmetrical('doritoFwdCan', { x: w * 0.35, y: h * 0.2, width: smallCanW, height: smallCanH }); addBunker('centerBase', { x: w * 0.5 - centerBaseW / 2, y: h * 0.5 - centerBaseH / 2, width: centerBaseW, height: centerBaseH }); addSymmetrical('temple', { x: w * 0.38, y: h * 0.5 - templeH / 2, width: templeW, height: templeH }); addSymmetrical('midCakeD', { x: w * 0.3, y: h * 0.35, width: brickW, height: brickH }); addSymmetrical('midCakeS', { x: w * 0.3, y: h * 0.65 - brickH, width: brickW, height: brickH }); addSymmetrical('midCanD', { x: w * 0.42, y: h * 0.25, width: smallCanW, height: smallCanH }); addSymmetrical('midCanS', { x: w * 0.42, y: h * 0.75 - smallCanH, width: smallCanW, height: smallCanH }); }
-        function setupBunkersNXL2020() { /* ... same ... */ bunkers.length = 0; bunkerLookup = {}; const w = canvas.width; const h = canvas.height; const BSM = BUNKER_SIZE_MULTIPLIER; console.log(`Setting up bunkers: NXL 2020 on ${w}x${h}`); const smallCanW = w * 0.03 * BSM; const smallCanH = h * 0.06 * BSM; const tallCakeW = w * 0.06 * BSM; const tallCakeH = h * 0.12 * BSM; const brickW = w * 0.06 * BSM; const brickH = h * 0.06 * BSM; const doritoW = w * 0.05 * BSM; const doritoH = h * 0.15 * BSM; const snakeBeamW = w * 0.12 * BSM; const snakeBeamH = h * 0.05 * BSM; const centerBaseW = w * 0.05 * BSM; const centerBaseH = h * 0.18 * BSM; const pinW = w * 0.02 * BSM; const pinH = h * 0.04 * BSM; addSymmetrical('backCornerTCK', { x: w * 0.05, y: h * 0.1, width: tallCakeW, height: tallCakeH }); addBunker('backCenterTCK_T', { x: w * 0.5 - tallCakeW / 2, y: h * 0.05, width: tallCakeW, height: tallCakeH }); addBunker('backCenterTCK_B', { x: w * 0.5 - tallCakeW / 2, y: h * 0.95 - tallCakeH, width: tallCakeW, height: tallCakeH }); addSymmetrical('snake1', { x: w * 0.15, y: h * 0.95 - snakeBeamH, width: snakeBeamW * 0.8, height: snakeBeamH }); addSymmetrical('snake2', { x: w * 0.3, y: h * 0.95 - snakeBeamH, width: snakeBeamW * 0.8, height: snakeBeamH }); addSymmetrical('snake3', { x: w * 0.4, y: h * 0.95 - snakeBeamH, width: snakeBeamW * 0.5, height: snakeBeamH }); addSymmetrical('snakeMiniCake', { x: w * 0.08, y: h * 0.75, width: brickW*0.8, height: brickH*0.8 }); addSymmetrical('dorito1', { x: w * 0.1, y: h * 0.2, width: doritoW, height: doritoH }); addSymmetrical('dorito2', { x: w * 0.25, y: h * 0.1, width: doritoW, height: doritoH }); addSymmetrical('dorito3', { x: w * 0.38, y: h * 0.05, width: doritoW, height: doritoH }); addSymmetrical('doritoMiniCake', { x: w * 0.08, y: h * 0.25, width: brickW*0.8, height: brickH*0.8 }); addBunker('centerBaseTop', { x: w * 0.5 - centerBaseW / 2, y: h * 0.3 - centerBaseH / 2, width: centerBaseW, height: centerBaseH }); addBunker('centerBaseBottom', { x: w * 0.5 - centerBaseW / 2, y: h * 0.7 - centerBaseH / 2, width: centerBaseW, height: centerBaseH }); addSymmetrical('centerPin1', { x: w * 0.4, y: h * 0.35, width: pinW, height: pinH }); addSymmetrical('centerPin2', { x: w * 0.4, y: h * 0.65 - pinH, width: pinW, height: pinH }); addSymmetrical('midBrick1', { x: w * 0.2, y: h * 0.65, width: brickW, height: brickH }); addSymmetrical('midBrick2', { x: w * 0.35, y: h * 0.5 - brickH/2, width: brickW, height: brickH }); }
-        // NEW: World Cup Layout Setup
+        // UPDATED: Assign shape property
+        const addBunker = (name, props, shape = 'rect') => { // Default shape is rect
+            const bunker = { name, shape, ...props };
+            bunkers.push(bunker);
+            if (name) bunkerLookup[name] = bunker;
+        };
+        const addSymmetrical = (baseName, props, shape = 'rect') => { // Default shape is rect
+            const w = canvas.width; const BSM = BUNKER_SIZE_MULTIPLIER;
+            const adjustedX = props.x + (props.width / BSM - props.width) / 2;
+            const adjustedY = props.y + (props.height / BSM - props.height) / 2;
+            const mirroredX = w - adjustedX - props.width;
+            addBunker(`${baseName}_L`, { ...props, x: adjustedX, y: adjustedY }, shape); // Pass shape
+            addBunker(`${baseName}_R`, { ...props, x: mirroredX, y: adjustedY }, shape); // Pass shape
+        };
+        function setupBunkersNXL2023() {
+            bunkers.length = 0; bunkerLookup = {}; const w = canvas.width; const h = canvas.height; const BSM = BUNKER_SIZE_MULTIPLIER; console.log(`Setting up bunkers: NXL 2023 on ${w}x${h}`);
+            const smallCanW = w * 0.03 * BSM; const smallCanH = h * 0.06 * BSM; const tallCanW = w * 0.035 * BSM; const tallCanH = h * 0.12 * BSM; const brickW = w * 0.06 * BSM; const brickH = h * 0.06 * BSM; const templeW = w * 0.05 * BSM; const templeH = h * 0.15 * BSM; const doritoW = w * 0.05 * BSM; const doritoH = h * 0.15 * BSM; const snakeBeamW = w * 0.12 * BSM; const snakeBeamH = h * 0.05 * BSM; const centerBaseW = w * 0.08 * BSM; const centerBaseH = h * 0.18 * BSM;
+            addSymmetrical('backCorner', { x: w * 0.05, y: h * 0.1, width: brickW * 1.2, height: brickH * 1.2 });
+            addSymmetrical('backCornerSnake', { x: w * 0.05, y: h * 0.9 - brickH * 1.2, width: brickW * 1.2, height: brickH * 1.2 });
+            addBunker('backCenter_T', { x: w * 0.5 - tallCanW / 2, y: h * 0.05, width: tallCanW, height: tallCanH });
+            addBunker('backCenter_B', { x: w * 0.5 - tallCanW / 2, y: h * 0.95 - tallCanH, width: tallCanW, height: tallCanH });
+            addSymmetrical('snakeSide', { x: w * 0.08, y: h * 0.75, width: brickW, height: brickH });
+            addSymmetrical('snake1', { x: w * 0.2, y: h * 0.95 - snakeBeamH, width: snakeBeamW, height: snakeBeamH });
+            addSymmetrical('snake2', { x: w * 0.35, y: h * 0.95 - snakeBeamH, width: snakeBeamW * 0.8, height: snakeBeamH });
+            addSymmetrical('snakeMini', { x: w * 0.15, y: h * 0.8, width: smallCanW, height: smallCanH });
+            addSymmetrical('snakeBackCan', { x: w*0.18, y: h * 0.9 - smallCanH, width: smallCanW, height: smallCanH});
+            addSymmetrical('dorito1', { x: w * 0.15, y: h * 0.15, width: doritoW, height: doritoH }, 'dorito'); // Shape: dorito
+            addSymmetrical('dorito2', { x: w * 0.28, y: h * 0.08, width: doritoW, height: doritoH }, 'dorito'); // Shape: dorito
+            addSymmetrical('doritoSideCan', { x: w * 0.18, y: h * 0.3, width: smallCanW, height: smallCanH });
+            addSymmetrical('doritoFwdCan', { x: w * 0.35, y: h * 0.2, width: smallCanW, height: smallCanH });
+            addBunker('centerBase', { x: w * 0.5 - centerBaseW / 2, y: h * 0.5 - centerBaseH / 2, width: centerBaseW, height: centerBaseH });
+            addSymmetrical('temple', { x: w * 0.38, y: h * 0.5 - templeH / 2, width: templeW, height: templeH }, 'dorito'); // Shape: dorito (temples are often triangular)
+            addSymmetrical('midCakeD', { x: w * 0.3, y: h * 0.35, width: brickW, height: brickH });
+            addSymmetrical('midCakeS', { x: w * 0.3, y: h * 0.65 - brickH, width: brickW, height: brickH });
+            addSymmetrical('midCanD', { x: w * 0.42, y: h * 0.25, width: smallCanW, height: smallCanH });
+            addSymmetrical('midCanS', { x: w * 0.42, y: h * 0.75 - smallCanH, width: smallCanW, height: smallCanH });
+        }
+        function setupBunkersNXL2020() {
+            bunkers.length = 0; bunkerLookup = {}; const w = canvas.width; const h = canvas.height; const BSM = BUNKER_SIZE_MULTIPLIER; console.log(`Setting up bunkers: NXL 2020 on ${w}x${h}`);
+            const smallCanW = w * 0.03 * BSM; const smallCanH = h * 0.06 * BSM; const tallCakeW = w * 0.06 * BSM; const tallCakeH = h * 0.12 * BSM; const brickW = w * 0.06 * BSM; const brickH = h * 0.06 * BSM; const doritoW = w * 0.05 * BSM; const doritoH = h * 0.15 * BSM; const snakeBeamW = w * 0.12 * BSM; const snakeBeamH = h * 0.05 * BSM; const centerBaseW = w * 0.05 * BSM; const centerBaseH = h * 0.18 * BSM; const pinW = w * 0.02 * BSM; const pinH = h * 0.04 * BSM;
+            addSymmetrical('backCornerTCK', { x: w * 0.05, y: h * 0.1, width: tallCakeW, height: tallCakeH });
+            addBunker('backCenterTCK_T', { x: w * 0.5 - tallCakeW / 2, y: h * 0.05, width: tallCakeW, height: tallCakeH });
+            addBunker('backCenterTCK_B', { x: w * 0.5 - tallCakeW / 2, y: h * 0.95 - tallCakeH, width: tallCakeW, height: tallCakeH });
+            addSymmetrical('snake1', { x: w * 0.15, y: h * 0.95 - snakeBeamH, width: snakeBeamW * 0.8, height: snakeBeamH });
+            addSymmetrical('snake2', { x: w * 0.3, y: h * 0.95 - snakeBeamH, width: snakeBeamW * 0.8, height: snakeBeamH });
+            addSymmetrical('snake3', { x: w * 0.4, y: h * 0.95 - snakeBeamH, width: snakeBeamW * 0.5, height: snakeBeamH });
+            addSymmetrical('snakeMiniCake', { x: w * 0.08, y: h * 0.75, width: brickW*0.8, height: brickH*0.8 });
+            addSymmetrical('dorito1', { x: w * 0.1, y: h * 0.2, width: doritoW, height: doritoH }, 'dorito');
+            addSymmetrical('dorito2', { x: w * 0.25, y: h * 0.1, width: doritoW, height: doritoH }, 'dorito');
+            addSymmetrical('dorito3', { x: w * 0.38, y: h * 0.05, width: doritoW, height: doritoH }, 'dorito');
+            addSymmetrical('doritoMiniCake', { x: w * 0.08, y: h * 0.25, width: brickW*0.8, height: brickH*0.8 });
+            addBunker('centerBaseTop', { x: w * 0.5 - centerBaseW / 2, y: h * 0.3 - centerBaseH / 2, width: centerBaseW, height: centerBaseH });
+            addBunker('centerBaseBottom', { x: w * 0.5 - centerBaseW / 2, y: h * 0.7 - centerBaseH / 2, width: centerBaseW, height: centerBaseH });
+            addSymmetrical('centerPin1', { x: w * 0.4, y: h * 0.35, width: pinW, height: pinH });
+            addSymmetrical('centerPin2', { x: w * 0.4, y: h * 0.65 - pinH, width: pinW, height: pinH });
+            addSymmetrical('midBrick1', { x: w * 0.2, y: h * 0.65, width: brickW, height: brickH });
+            addSymmetrical('midBrick2', { x: w * 0.35, y: h * 0.5 - brickH/2, width: brickW, height: brickH });
+        }
         function setupBunkersWorldCup() {
-            bunkers.length = 0; bunkerLookup = {};
-            const w = canvas.width; const h = canvas.height; const BSM = BUNKER_SIZE_MULTIPLIER;
-            console.log(`Setting up bunkers: NXL World Cup on ${w}x${h}`);
-
-            // Define bunker dimensions (adjust as needed based on image)
-            const doritoW = w * 0.05 * BSM; const doritoH = h * 0.15 * BSM;
-            const canW = w * 0.035 * BSM; const canH = h * 0.10 * BSM; // Slightly shorter cans
-            const brickW = w * 0.06 * BSM; const brickH = h * 0.06 * BSM;
-            const beamW = w * 0.15 * BSM; const beamH = h * 0.05 * BSM;
-            const centerW = w * 0.08 * BSM; const centerH = h * 0.12 * BSM; // Central structure
-
-            // Back Row (Symmetrical Doritos, Center Beam)
-            addSymmetrical('backCornerD', { x: w * 0.08, y: h * 0.1, width: doritoW, height: doritoH });
-            addSymmetrical('backMiniD', { x: w * 0.2, y: h * 0.08, width: doritoW * 0.8, height: doritoH * 0.8 });
+            bunkers.length = 0; bunkerLookup = {}; const w = canvas.width; const h = canvas.height; const BSM = BUNKER_SIZE_MULTIPLIER; console.log(`Setting up bunkers: NXL World Cup on ${w}x${h}`);
+            const doritoW = w * 0.05 * BSM; const doritoH = h * 0.15 * BSM; const canW = w * 0.035 * BSM; const canH = h * 0.10 * BSM; const brickW = w * 0.06 * BSM; const brickH = h * 0.06 * BSM; const beamW = w * 0.15 * BSM; const beamH = h * 0.05 * BSM; const centerW = w * 0.08 * BSM; const centerH = h * 0.12 * BSM;
+            addSymmetrical('backCornerD', { x: w * 0.08, y: h * 0.1, width: doritoW, height: doritoH }, 'dorito');
+            addSymmetrical('backMiniD', { x: w * 0.2, y: h * 0.08, width: doritoW * 0.8, height: doritoH * 0.8 }, 'dorito');
             addBunker('backCenterBeam', { x: w * 0.5 - beamW / 2, y: h * 0.1, width: beamW, height: beamH });
-
-            // Dorito Side (Top)
             addSymmetrical('doritoSideCan', { x: w * 0.05, y: h * 0.3, width: canW, height: canH });
-            addSymmetrical('doritoFwdD', { x: w * 0.15, y: h * 0.25, width: doritoW, height: doritoH });
+            addSymmetrical('doritoFwdD', { x: w * 0.15, y: h * 0.25, width: doritoW, height: doritoH }, 'dorito');
             addSymmetrical('doritoMidCan', { x: w * 0.3, y: h * 0.2, width: canW, height: canH });
-
-            // Snake Side (Bottom)
             addSymmetrical('snakeCornerBrick', { x: w * 0.05, y: h * 0.9 - brickH, width: brickW, height: brickH });
             addSymmetrical('snake1', { x: w * 0.15, y: h * 0.95 - beamH, width: beamW, height: beamH });
             addSymmetrical('snake2', { x: w * 0.32, y: h * 0.95 - beamH, width: beamW * 0.7, height: beamH });
             addSymmetrical('snakeSideCan', { x: w * 0.25, y: h * 0.8, width: canW, height: canH });
-
-            // Mid Field
             addSymmetrical('midBrickD', { x: w * 0.38, y: h * 0.35, width: brickW, height: brickH });
             addSymmetrical('midBrickS', { x: w * 0.38, y: h * 0.65 - brickH, width: brickW, height: brickH });
-
-            // Center Structures (Approximation)
             addBunker('centerTop', { x: w * 0.5 - centerW / 2, y: h * 0.35 - centerH / 2, width: centerW, height: centerH });
             addBunker('centerBottom', { x: w * 0.5 - centerW / 2, y: h * 0.65 - centerH / 2, width: centerW, height: centerH });
-            addSymmetrical('centerMiniCan', { x: w*0.45, y: h*0.5 - canH*0.4/2, width: canW*0.8, height: canH*0.8}); // Small cans near center line
-
+            addSymmetrical('centerMiniCan', { x: w*0.45, y: h*0.5 - canH*0.4/2, width: canW*0.8, height: canH*0.8});
         }
 
 
@@ -818,9 +859,96 @@
         function createMuzzleFlash(x, y, color) { /* ... same ... */ muzzleFlashes.push({ x: x, y: y, color: color, radius: MUZZLE_FLASH_RADIUS, creationTime: Date.now(), duration: MUZZLE_FLASH_DURATION }); }
         function createImpactParticles(x, y, color, count) { /* ... same ... */ for (let i = 0; i < count; i++) { const angle = Math.random() * Math.PI * 2; const speed = PARTICLE_SPEED * (0.5 + Math.random() * 0.8); particles.push({ x: x, y: y, dx: Math.cos(angle) * speed, dy: Math.sin(angle) * speed, radius: PARTICLE_RADIUS * (0.8 + Math.random() * 0.4), color: color, creationTime: Date.now(), duration: PARTICLE_DURATION * (0.7 + Math.random() * 0.6) }); } }
         function createPaintballTrail(x, y, color) { /* ... same ... */ paintballTrails.push({ x: x, y: y, radius: TRAIL_PARTICLE_RADIUS, color: color, creationTime: Date.now(), duration: TRAIL_PARTICLE_DURATION }); }
+        // NEW: Function to trigger screen shake
+        function triggerScreenShake(intensity = SCREEN_SHAKE_MAX_INTENSITY, duration = SCREEN_SHAKE_HIT_DURATION) {
+            if (!isMuted) { // Optional: Don't shake if muted? Or maybe keep it? Let's keep it for now.
+                screenShakeIntensity = intensity;
+                screenShakeDuration = duration;
+                screenShakeStartTime = Date.now();
+            }
+        }
 
         // --- Drawing Functions ---
-        function drawBunkers() { /* ... same with texture lines ... */ const highlightOffset = 1.5; const highlightColor = 'rgba(255, 255, 255, 0.15)'; const shadowColor = 'rgba(0, 0, 0, 0.2)'; const textureLineColor = 'rgba(0, 0, 0, 0.08)'; const textureLineSpacing = 8; bunkers.forEach(bunker => { const gradient = ctx.createLinearGradient(bunker.x, bunker.y, bunker.x + bunker.width, bunker.y + bunker.height); gradient.addColorStop(0, '#A08C61'); gradient.addColorStop(1, '#8C7A51'); ctx.fillStyle = gradient; ctx.fillRect(bunker.x, bunker.y, bunker.width, bunker.height); ctx.strokeStyle = highlightColor; ctx.lineWidth = highlightOffset; ctx.beginPath(); ctx.moveTo(bunker.x + highlightOffset / 2, bunker.y + bunker.height - highlightOffset / 2); ctx.lineTo(bunker.x + highlightOffset / 2, bunker.y + highlightOffset / 2); ctx.lineTo(bunker.x + bunker.width - highlightOffset / 2, bunker.y + highlightOffset / 2); ctx.stroke(); ctx.strokeStyle = shadowColor; ctx.lineWidth = highlightOffset; ctx.beginPath(); ctx.moveTo(bunker.x + bunker.width - highlightOffset / 2, bunker.y + highlightOffset / 2); ctx.lineTo(bunker.x + bunker.width - highlightOffset / 2, bunker.y + bunker.height - highlightOffset / 2); ctx.lineTo(bunker.x + highlightOffset / 2, bunker.y + bunker.height - highlightOffset / 2); ctx.stroke(); ctx.save(); ctx.strokeStyle = textureLineColor; ctx.lineWidth = 0.75; ctx.beginPath(); ctx.rect(bunker.x, bunker.y, bunker.width, bunker.height); ctx.clip(); const maxDim = Math.max(bunker.width, bunker.height) * 1.5; for (let i = -maxDim; i < maxDim; i += textureLineSpacing) { ctx.moveTo(bunker.x + i, bunker.y); ctx.lineTo(bunker.x + i + maxDim, bunker.y + maxDim); } ctx.stroke(); ctx.restore(); ctx.strokeStyle = '#5A4D35'; ctx.lineWidth = 1.5; ctx.strokeRect(bunker.x, bunker.y, bunker.width, bunker.height); }); }
+        /** Draws all bunkers with enhanced detail and shapes. */
+        function drawBunkers() {
+            const highlightOffset = 1.5; // Offset for highlight/shadow lines
+            const highlightColor = 'rgba(255, 255, 255, 0.15)'; // Subtle white highlight
+            const shadowColor = 'rgba(0, 0, 0, 0.2)'; // Subtle black shadow
+            const textureLineColor = 'rgba(0, 0, 0, 0.08)'; // Very subtle dark lines for texture
+            const textureLineSpacing = 8; // Spacing between texture lines
+
+            bunkers.forEach(bunker => {
+                // Base gradient fill (common to all shapes for now)
+                const gradient = ctx.createLinearGradient(bunker.x, bunker.y, bunker.x + bunker.width, bunker.y + bunker.height);
+                gradient.addColorStop(0, '#A08C61');
+                gradient.addColorStop(1, '#8C7A51');
+                ctx.fillStyle = gradient;
+
+                // --- Draw specific shape ---
+                ctx.beginPath();
+                if (bunker.shape === 'dorito') {
+                    // Draw triangle (adjust points as needed for specific dorito types)
+                    // Assuming base is along the bottom edge of the bounding box for simplicity
+                    ctx.moveTo(bunker.x + bunker.width / 2, bunker.y); // Top point
+                    ctx.lineTo(bunker.x + bunker.width, bunker.y + bunker.height); // Bottom right
+                    ctx.lineTo(bunker.x, bunker.y + bunker.height); // Bottom left
+                    ctx.closePath();
+                } else { // Default to rectangle ('rect', 'cylinder', etc.)
+                    ctx.rect(bunker.x, bunker.y, bunker.width, bunker.height);
+                }
+                ctx.fill(); // Fill the shape
+
+                // --- Inner Bevel Effect ---
+                // (This assumes rectangular highlight/shadow, might look odd on triangles)
+                // Highlight (top and left edges)
+                ctx.strokeStyle = highlightColor;
+                ctx.lineWidth = highlightOffset;
+                ctx.beginPath();
+                ctx.moveTo(bunker.x + highlightOffset / 2, bunker.y + bunker.height - highlightOffset / 2);
+                ctx.lineTo(bunker.x + highlightOffset / 2, bunker.y + highlightOffset / 2);
+                ctx.lineTo(bunker.x + bunker.width - highlightOffset / 2, bunker.y + highlightOffset / 2);
+                ctx.stroke();
+                // Shadow (bottom and right edges)
+                ctx.strokeStyle = shadowColor;
+                ctx.lineWidth = highlightOffset;
+                ctx.beginPath();
+                ctx.moveTo(bunker.x + bunker.width - highlightOffset / 2, bunker.y + highlightOffset / 2);
+                ctx.lineTo(bunker.x + bunker.width - highlightOffset / 2, bunker.y + bunker.height - highlightOffset / 2);
+                ctx.lineTo(bunker.x + highlightOffset / 2, bunker.y + bunker.height - highlightOffset / 2);
+                ctx.stroke();
+
+                // --- Subtle Diagonal Texture Lines ---
+                ctx.save();
+                ctx.strokeStyle = textureLineColor;
+                ctx.lineWidth = 0.75;
+                ctx.beginPath();
+                // Clip drawing to the bunker's bounding box
+                ctx.rect(bunker.x, bunker.y, bunker.width, bunker.height);
+                ctx.clip();
+                const maxDim = Math.max(bunker.width, bunker.height) * 1.5;
+                for (let i = -maxDim; i < maxDim; i += textureLineSpacing) {
+                    ctx.moveTo(bunker.x + i, bunker.y);
+                    ctx.lineTo(bunker.x + i + maxDim, bunker.y + maxDim);
+                }
+                ctx.stroke();
+                ctx.restore(); // Restore context (remove clipping path)
+
+                // --- Original outer stroke ---
+                ctx.strokeStyle = '#5A4D35';
+                ctx.lineWidth = 1.5;
+                if (bunker.shape === 'dorito') { // Stroke the triangle path
+                    ctx.beginPath();
+                    ctx.moveTo(bunker.x + bunker.width / 2, bunker.y);
+                    ctx.lineTo(bunker.x + bunker.width, bunker.y + bunker.height);
+                    ctx.lineTo(bunker.x, bunker.y + bunker.height);
+                    ctx.closePath();
+                    ctx.stroke();
+                } else { // Stroke the rectangle path
+                    ctx.strokeRect(bunker.x, bunker.y, bunker.width, bunker.height);
+                }
+            });
+        }
+
         function drawPlayer(player) { /* ... same sprite drawing logic ... */ ctx.save(); if (!player.isEliminated) { ctx.fillStyle = `rgba(0, 0, 0, ${SHADOW_ALPHA})`; ctx.beginPath(); ctx.ellipse(player.x + SHADOW_OFFSET_X, player.y + SHADOW_OFFSET_Y, PLAYER_SPRITE_WIDTH * 0.5, PLAYER_SPRITE_WIDTH * 0.25, 0, 0, Math.PI * 2); ctx.fill(); } ctx.globalAlpha = player.isEliminated ? 0.4 : 1.0; ctx.translate(player.x, player.y); ctx.rotate(player.facingAngle); let bobOffset = 0; if (player.isMoving && !player.isEliminated) { const animationCycle = Math.sin((globalAnimationFrameCounter + team1Players.indexOf(player) * 5 + team2Players.indexOf(player) * 5) / PLAYER_ANIMATION_SPEED); bobOffset = animationCycle * 1.5; } ctx.translate(0, bobOffset); ctx.fillStyle = player.color; ctx.fillRect(-PLAYER_SPRITE_WIDTH / 2, -PLAYER_SPRITE_HEIGHT / 2, PLAYER_SPRITE_WIDTH, PLAYER_SPRITE_HEIGHT); ctx.fillStyle = '#555'; ctx.fillRect(PLAYER_SPRITE_WIDTH * 0.3, -PLAYER_MARKER_WIDTH / 2, PLAYER_MARKER_LENGTH, PLAYER_MARKER_WIDTH); if (player.outlineColor && !player.isEliminated) { ctx.strokeStyle = player.outlineColor; ctx.lineWidth = 2; ctx.strokeRect(-PLAYER_SPRITE_WIDTH / 2, -PLAYER_SPRITE_HEIGHT / 2, PLAYER_SPRITE_WIDTH, PLAYER_SPRITE_HEIGHT); ctx.strokeRect(PLAYER_SPRITE_WIDTH * 0.3, -PLAYER_MARKER_WIDTH / 2, PLAYER_MARKER_LENGTH, PLAYER_MARKER_WIDTH); } ctx.rotate(-player.facingAngle); ctx.translate(0, -bobOffset); if (player.isEliminated && player.eliminationTimestamp && Date.now() - player.eliminationTimestamp < ELIMINATION_CUE_DURATION) { ctx.strokeStyle = 'red'; ctx.lineWidth = 3; ctx.lineCap = 'butt'; const xSize = PLAYER_SPRITE_WIDTH * 0.6; ctx.beginPath(); ctx.moveTo(-xSize, -xSize); ctx.lineTo(xSize, xSize); ctx.stroke(); ctx.beginPath(); ctx.moveTo(xSize, -xSize); ctx.lineTo(-xSize, xSize); ctx.stroke(); } ctx.restore(); }
         function drawPaintballs() { /* ... same ... */ paintballs.forEach(paintball => { ctx.beginPath(); ctx.arc(paintball.x, paintball.y, paintball.radius, 0, Math.PI * 2); const gradient = ctx.createRadialGradient( paintball.x, paintball.y, paintball.radius * 0.1, paintball.x, paintball.y, paintball.radius ); gradient.addColorStop(0, 'rgba(255, 255, 255, 0.3)'); gradient.addColorStop(1, paintball.color); ctx.fillStyle = gradient; ctx.fill(); }); }
         function drawSplats() { /* ... same ... */ const now = Date.now(); splats.forEach(splat => { const age = now - splat.creationTime; const alpha = 1.0 - Math.min(1.0, age / splat.duration); if (alpha <= 0) return; ctx.save(); ctx.globalAlpha = alpha * 0.8; ctx.fillStyle = splat.color; ctx.beginPath(); ctx.moveTo(splat.x + splat.radius, splat.y); const points = 8; let prevX = splat.x + splat.radius; let prevY = splat.y; for (let i = 1; i <= points; i++) { const angle = (i / points) * Math.PI * 2; const randomOffset = splat.radius * (0.7 + Math.random() * 0.6); const px = splat.x + Math.cos(angle) * randomOffset; const py = splat.y + Math.sin(angle) * randomOffset; const midX = (prevX + px) / 2; const midY = (prevY + py) / 2; ctx.quadraticCurveTo(prevX, prevY, midX, midY); prevX = px; prevY = py; } ctx.closePath(); ctx.fill(); ctx.restore(); }); }
@@ -830,54 +958,76 @@
 
 
         // --- Update Functions ---
-        function updatePlayer(player) {
-            if (player.isEliminated || !gameActive) { player.isMoving = false; return; }
-            let targetDx = 0; let targetDy = 0; const now = Date.now(); let repulsionDx = 0; let repulsionDy = 0;
-            player.isMoving = false;
-
-            // --- Player 1 Movement Input ---
-            if (player.isPlayer1) {
-                if (keyStates.p1Up) targetDy = -player.speed; if (keyStates.p1Down) targetDy = player.speed;
-                if (keyStates.p1Left) targetDx = -player.speed; if (keyStates.p1Right) targetDx = player.speed;
-                if (targetDx !== 0 && targetDy !== 0) { const factor = 0.7071; targetDx *= factor; targetDy *= factor; }
+        function updatePlayer(player) { /* ... same logic with updated player collision ... */ if (player.isEliminated || !gameActive) { player.isMoving = false; return; } let targetDx = 0; let targetDy = 0; const now = Date.now(); let repulsionDx = 0; let repulsionDy = 0; player.isMoving = false; if (player.isPlayer1) { if (keyStates.p1Up) targetDy = -player.speed; if (keyStates.p1Down) targetDy = player.speed; if (keyStates.p1Left) targetDx = -player.speed; if (keyStates.p1Right) targetDx = player.speed; if (targetDx !== 0 && targetDy !== 0) { const factor = 0.7071; targetDx *= factor; targetDy *= factor; } } else if (player.isPlayer2) { if (keyStates.p2Up) targetDy = -player.speed; if (keyStates.p2Down) targetDy = player.speed; if (keyStates.p2Left) targetDx = -player.speed; if (keyStates.p2Right) targetDx = player.speed; if (targetDx !== 0 && targetDy !== 0) { const factor = 0.7071; targetDx *= factor; targetDy *= factor; } } else { const state = player.ai.state; const teammates = (player.team === selectedUserTeam) ? team1Players : team2Players; teammates.forEach(teammate => { if (player === teammate || teammate.isEliminated) return; const distSq = (player.x - teammate.x)**2 + (player.y - teammate.y)**2; if (distSq < TEAMMATE_REPULSION_DISTANCE**2 && distSq > 0) { const dist = Math.sqrt(distSq); const repelForce = (TEAMMATE_REPULSION_DISTANCE - dist) / TEAMMATE_REPULSION_DISTANCE; repulsionDx += (player.x - teammate.x) / dist * repelForce * TEAMMATE_REPULSION_FORCE; repulsionDy += (player.y - teammate.y) / dist * repelForce * TEAMMATE_REPULSION_FORCE; } }); if (state === 'runningInitial' && player.ai.targetBunker) { const targetBunker = player.ai.targetBunker; const targetPointX = targetBunker.x + targetBunker.width / 2 + (player.team === selectedUserTeam ? COLLISION_RADIUS * 1.5 : -COLLISION_RADIUS * 1.5); const targetPointY = targetBunker.y + targetBunker.height / 2 + (Math.random() - 0.5) * targetBunker.height * 0.4; const distToTarget = Math.hypot(targetPointX - player.x, targetPointY - player.y); if (distToTarget < COLLISION_RADIUS * 1.5) { player.ai.state = 'patrolling'; player.ai.moving = false; player.ai.lastMoveTime = now; } else { const angle = Math.atan2(targetPointY - player.y, targetPointX - player.x); targetDx = Math.cos(angle) * player.speed * 1.2; targetDy = Math.sin(angle) * player.speed * 1.2; player.ai.moving = true; } } else if (state === 'patrolling') { if (now - player.ai.lastMoveTime > AI_MOVE_INTERVAL) { player.ai.lastMoveTime = now + Math.random() * 500; const centerDistX = Math.abs(player.x - canvas.width / 2); if (centerDistX > canvas.width * 0.25 && Math.random() < 0.6) { player.ai.targetX = canvas.width / 2 + (Math.random() - 0.5) * 100; player.ai.targetY = player.y + (Math.random() - 0.5) * 50; } else { player.ai.targetX = player.x + (Math.random() - 0.5) * AI_MOVE_TARGET_RANGE * 2; player.ai.targetY = player.y + (Math.random() - 0.5) * AI_MOVE_TARGET_RANGE * 2; } player.ai.targetX = Math.max(COLLISION_RADIUS * 2, Math.min(canvas.width - COLLISION_RADIUS * 2, player.ai.targetX)); player.ai.targetY = Math.max(COLLISION_RADIUS * 2, Math.min(canvas.height - COLLISION_RADIUS * 2, player.ai.targetY)); player.ai.moving = true; } if (player.ai.moving) { const distToTarget = Math.hypot(player.ai.targetX - player.x, player.ai.targetY - player.y); if (distToTarget > COLLISION_RADIUS * 1.5) { const angle = Math.atan2(player.ai.targetY - player.y, player.ai.targetX - player.x); targetDx = Math.cos(angle) * player.speed; targetDy = Math.sin(angle) * player.speed; } else { player.ai.moving = false; } } } if (state !== 'spawning' && state !== 'runningInitial' && now - player.ai.lastShootTime > AI_SHOOT_INTERVAL) { player.ai.lastShootTime = now + Math.random() * 50; const opponents = (player.team === selectedUserTeam) ? team2Players : team1Players; let bestTarget = null; let minDistance = AI_VIEW_RANGE; opponents.forEach(opponent => { if (!opponent.isEliminated) { const dist = Math.hypot(player.x - opponent.x, player.y - opponent.y); if (dist < minDistance && hasLineOfSight(player.x, player.y, opponent.x, opponent.y)) { minDistance = dist; bestTarget = opponent; } } }); if (bestTarget) shootPaintball(player, bestTarget.x, bestTarget.y); } targetDx += repulsionDx; targetDy += repulsionDy; } if (Math.abs(targetDx) > 0.1 || Math.abs(targetDy) > 0.1) { player.facingAngle = Math.atan2(targetDy, targetDx); player.isMoving = true; } let finalDx = 0, finalDy = 0; if (targetDx !== 0 || targetDy !== 0) { const magnitude = Math.hypot(targetDx, targetDy); const currentSpeed = (player.ai?.state === 'runningInitial' && !player.isUser ? player.speed * 1.2 : player.speed); const effectiveSpeed = Math.min(currentSpeed, magnitude > 0 ? magnitude : currentSpeed); if (magnitude > 1e-6) { finalDx = (targetDx / magnitude) * effectiveSpeed; finalDy = (targetDy / magnitude) * effectiveSpeed; } } player.dx = finalDx; player.dy = finalDy; if (Math.abs(finalDx) < 0.1 && Math.abs(finalDy) < 0.1) { player.isMoving = false; } let nextX = player.x + finalDx; let nextY = player.y + finalDy; if (nextX - COLLISION_RADIUS < 0) nextX = COLLISION_RADIUS; if (nextX + COLLISION_RADIUS > canvas.width) nextX = canvas.width - COLLISION_RADIUS; if (nextY - COLLISION_RADIUS < 0) nextY = COLLISION_RADIUS; if (nextY + COLLISION_RADIUS > canvas.height) nextY = canvas.height - COLLISION_RADIUS; let collidedBunker = getCollidingBunker(nextX, nextY); if (collidedBunker) { const closestX = Math.max(collidedBunker.x, Math.min(nextX, collidedBunker.x + collidedBunker.width)); const closestY = Math.max(collidedBunker.y, Math.min(nextY, collidedBunker.y + collidedBunker.height)); const collisionDx = nextX - closestX; const collisionDy = nextY - closestY; const collisionDist = Math.hypot(collisionDx, collisionDy); const normCollisionDx = (collisionDist > 0) ? collisionDx / collisionDist : 0; const normCollisionDy = (collisionDist > 0) ? collisionDy / collisionDist : 0; const overlap = COLLISION_RADIUS - collisionDist; const pushBackAmount = (overlap > 0 ? overlap : 0) + 1.5; nextX = player.x + normCollisionDx * pushBackAmount; nextY = player.y + normCollisionDy * pushBackAmount; if (finalDx !== 0 || finalDy !== 0) { const moveMagnitude = Math.hypot(finalDx, finalDy); if (moveMagnitude > 1e-6) { const normMoveDx = finalDx / moveMagnitude; const normMoveDy = finalDy / moveMagnitude; const nudgeX = -normMoveDy * COLLISION_NUDGE_FACTOR * player.speed; const nudgeY = normMoveDx * COLLISION_NUDGE_FACTOR * player.speed; if (!getCollidingBunker(nextX + nudgeX, nextY + nudgeY)) { nextX += nudgeX; nextY += nudgeY; } else if (!getCollidingBunker(nextX - nudgeX, nextY - nudgeY)) { nextX -= nudgeX; nextY -= nudgeY; } } } if (!player.isUser) { player.ai.moving = false; if(player.ai.state === 'runningInitial') { player.ai.state = 'patrolling'; player.ai.lastMoveTime = now; } } player.isMoving = false; } const allPlayers = [...team1Players, ...team2Players]; allPlayers.forEach(other => { if (player === other || other.isEliminated) return; const dist = Math.hypot(nextX - other.x, nextY - other.y); if (dist < COLLISION_RADIUS + COLLISION_RADIUS) { const collideDx = nextX - other.x; const collideDy = nextY - other.y; const collideDist = dist > 0 ? dist : 1; const normCollideDx = collideDx / collideDist; const normCollideDy = collideDy / collideDist; const overlap = (COLLISION_RADIUS + COLLISION_RADIUS) - collideDist; const pushAmount = (overlap / 2) + 0.1; nextX = player.x + normCollideDx * pushAmount; nextY = player.y + normCollideDy * pushAmount; const nudgeForce = 0.3; const nudgeX = -normCollideDy * nudgeForce; const nudgeY = normCollideDx * nudgeForce; if (!getCollidingBunker(nextX + nudgeX, nextY + nudgeY)) { nextX += nudgeX; nextY += nudgeY; } else if (!getCollidingBunker(nextX - nudgeX, nextY - nudgeY)) { nextX -= nudgeX; nextY -= nudgeY; } if (!player.isUser) player.ai.moving = false; player.isMoving = false; } }); player.x = nextX; player.y = nextY; }
+        function updatePaintballs() {
+            for (let i = paintballs.length - 1; i >= 0; i--) {
+                const p = paintballs[i];
+                const prevX = p.x; const prevY = p.y;
+                p.x += p.dx; p.y += p.dy;
+                let removed = false;
+                createPaintballTrail(prevX - p.dx * 0.2, prevY - p.dy * 0.2, p.color);
+                if (p.x + p.radius < 0 || p.x - p.radius > canvas.width || p.y + p.radius < 0 || p.y - p.radius > canvas.height) {
+                    paintballs.splice(i, 1); removed = true; continue;
+                }
+                if (isCollidingWithBunker(p.x, p.y, p.radius)) {
+                    createSplat(p.x, p.y, '#a0aec0');
+                    createImpactParticles(p.x, p.y, '#a0aec0', PARTICLE_COUNT_HIT / 2);
+                    paintballs.splice(i, 1); removed = true;
+                    playSound('hitBunker', 'C2');
+                    continue;
+                }
+                const targetTeamArray = (p.team === selectedUserTeam) ? team2Players : team1Players;
+                for (let j = targetTeamArray.length - 1; j >= 0; j--) {
+                    const player = targetTeamArray[j];
+                    if (!player.isEliminated) {
+                        const dist = Math.hypot(p.x - player.x, p.y - player.y);
+                        if (dist < p.radius + COLLISION_RADIUS) {
+                            createSplat(p.x, p.y, p.color);
+                            createImpactParticles(p.x, p.y, p.color, PARTICLE_COUNT_HIT);
+                            player.isEliminated = true; player.eliminationTimestamp = Date.now();
+                            paintballs.splice(i, 1); removed = true;
+                            playSound('hitPlayer', 'A3', '8n');
+                            // NEW: Trigger screen shake if P1 or P2 is hit
+                            if (player.isPlayer1 || player.isPlayer2) {
+                                triggerScreenShake();
+                            }
+                            if (player.team === selectedUserTeam) team1Score--; else team2Score--;
+                            updateScoreDisplay(); checkWinCondition();
+                            break;
+                        }
+                    }
+                }
             }
-            // --- Player 2 Movement Input ---
-            else if (player.isPlayer2) {
-                if (keyStates.p2Up) targetDy = -player.speed; if (keyStates.p2Down) targetDy = player.speed;
-                if (keyStates.p2Left) targetDx = -player.speed; if (keyStates.p2Right) targetDx = player.speed;
-                if (targetDx !== 0 && targetDy !== 0) { const factor = 0.7071; targetDx *= factor; targetDy *= factor; }
-            }
-            // --- AI Player Logic ---
-            else { /* ... same AI logic ... */ const state = player.ai.state; const teammates = (player.team === selectedUserTeam) ? team1Players : team2Players; teammates.forEach(teammate => { if (player === teammate || teammate.isEliminated) return; const distSq = (player.x - teammate.x)**2 + (player.y - teammate.y)**2; if (distSq < TEAMMATE_REPULSION_DISTANCE**2 && distSq > 0) { const dist = Math.sqrt(distSq); const repelForce = (TEAMMATE_REPULSION_DISTANCE - dist) / TEAMMATE_REPULSION_DISTANCE; repulsionDx += (player.x - teammate.x) / dist * repelForce * TEAMMATE_REPULSION_FORCE; repulsionDy += (player.y - teammate.y) / dist * repelForce * TEAMMATE_REPULSION_FORCE; } }); if (state === 'runningInitial' && player.ai.targetBunker) { const targetBunker = player.ai.targetBunker; const targetPointX = targetBunker.x + targetBunker.width / 2 + (player.team === selectedUserTeam ? COLLISION_RADIUS * 1.5 : -COLLISION_RADIUS * 1.5); const targetPointY = targetBunker.y + targetBunker.height / 2 + (Math.random() - 0.5) * targetBunker.height * 0.4; const distToTarget = Math.hypot(targetPointX - player.x, targetPointY - player.y); if (distToTarget < COLLISION_RADIUS * 1.5) { player.ai.state = 'patrolling'; player.ai.moving = false; player.ai.lastMoveTime = now; } else { const angle = Math.atan2(targetPointY - player.y, targetPointX - player.x); targetDx = Math.cos(angle) * player.speed * 1.2; targetDy = Math.sin(angle) * player.speed * 1.2; player.ai.moving = true; } } else if (state === 'patrolling') { if (now - player.ai.lastMoveTime > AI_MOVE_INTERVAL) { player.ai.lastMoveTime = now + Math.random() * 500; const centerDistX = Math.abs(player.x - canvas.width / 2); if (centerDistX > canvas.width * 0.25 && Math.random() < 0.6) { player.ai.targetX = canvas.width / 2 + (Math.random() - 0.5) * 100; player.ai.targetY = player.y + (Math.random() - 0.5) * 50; } else { player.ai.targetX = player.x + (Math.random() - 0.5) * AI_MOVE_TARGET_RANGE * 2; player.ai.targetY = player.y + (Math.random() - 0.5) * AI_MOVE_TARGET_RANGE * 2; } player.ai.targetX = Math.max(COLLISION_RADIUS * 2, Math.min(canvas.width - COLLISION_RADIUS * 2, player.ai.targetX)); player.ai.targetY = Math.max(COLLISION_RADIUS * 2, Math.min(canvas.height - COLLISION_RADIUS * 2, player.ai.targetY)); player.ai.moving = true; } if (player.ai.moving) { const distToTarget = Math.hypot(player.ai.targetX - player.x, player.ai.targetY - player.y); if (distToTarget > COLLISION_RADIUS * 1.5) { const angle = Math.atan2(player.ai.targetY - player.y, player.ai.targetX - player.x); targetDx = Math.cos(angle) * player.speed; targetDy = Math.sin(angle) * player.speed; } else { player.ai.moving = false; } } } if (state !== 'spawning' && state !== 'runningInitial' && now - player.ai.lastShootTime > AI_SHOOT_INTERVAL) { player.ai.lastShootTime = now + Math.random() * 50; const opponents = (player.team === selectedUserTeam) ? team2Players : team1Players; let bestTarget = null; let minDistance = AI_VIEW_RANGE; opponents.forEach(opponent => { if (!opponent.isEliminated) { const dist = Math.hypot(player.x - opponent.x, player.y - opponent.y); if (dist < minDistance && hasLineOfSight(player.x, player.y, opponent.x, opponent.y)) { minDistance = dist; bestTarget = opponent; } } }); if (bestTarget) shootPaintball(player, bestTarget.x, bestTarget.y); } targetDx += repulsionDx; targetDy += repulsionDy; }
-
-            // --- Update Facing Angle & Moving Flag ---
-            if (Math.abs(targetDx) > 0.1 || Math.abs(targetDy) > 0.1) { player.facingAngle = Math.atan2(targetDy, targetDx); player.isMoving = true; }
-
-            // --- Calculate Final Movement ---
-            let finalDx = 0, finalDy = 0;
-            if (targetDx !== 0 || targetDy !== 0) { /* ... same speed calculation ... */ const magnitude = Math.hypot(targetDx, targetDy); const currentSpeed = (player.ai?.state === 'runningInitial' && !player.isUser ? player.speed * 1.2 : player.speed); const effectiveSpeed = Math.min(currentSpeed, magnitude > 0 ? magnitude : currentSpeed); if (magnitude > 1e-6) { finalDx = (targetDx / magnitude) * effectiveSpeed; finalDy = (targetDy / magnitude) * effectiveSpeed; } }
-            player.dx = finalDx; player.dy = finalDy;
-            if (Math.abs(finalDx) < 0.1 && Math.abs(finalDy) < 0.1) { player.isMoving = false; }
-
-            // --- Calculate Next Position & Collision ---
-            let nextX = player.x + finalDx; let nextY = player.y + finalDy;
-            // Boundary Collision
-            if (nextX - COLLISION_RADIUS < 0) nextX = COLLISION_RADIUS; if (nextX + COLLISION_RADIUS > canvas.width) nextX = canvas.width - COLLISION_RADIUS; if (nextY - COLLISION_RADIUS < 0) nextY = COLLISION_RADIUS; if (nextY + COLLISION_RADIUS > canvas.height) nextY = canvas.height - COLLISION_RADIUS;
-            // Bunker Collision
-            let collidedBunker = getCollidingBunker(nextX, nextY);
-            if (collidedBunker) { /* ... same collision resolution & sliding logic ... */ const closestX = Math.max(collidedBunker.x, Math.min(nextX, collidedBunker.x + collidedBunker.width)); const closestY = Math.max(collidedBunker.y, Math.min(nextY, collidedBunker.y + collidedBunker.height)); const collisionDx = nextX - closestX; const collisionDy = nextY - closestY; const collisionDist = Math.hypot(collisionDx, collisionDy); const normCollisionDx = (collisionDist > 0) ? collisionDx / collisionDist : 0; const normCollisionDy = (collisionDist > 0) ? collisionDy / collisionDist : 0; const overlap = COLLISION_RADIUS - collisionDist; const pushBackAmount = (overlap > 0 ? overlap : 0) + 1.5; nextX = player.x + normCollisionDx * pushBackAmount; nextY = player.y + normCollisionDy * pushBackAmount; if (finalDx !== 0 || finalDy !== 0) { const moveMagnitude = Math.hypot(finalDx, finalDy); if (moveMagnitude > 1e-6) { const normMoveDx = finalDx / moveMagnitude; const normMoveDy = finalDy / moveMagnitude; const nudgeX = -normMoveDy * COLLISION_NUDGE_FACTOR * player.speed; const nudgeY = normMoveDx * COLLISION_NUDGE_FACTOR * player.speed; if (!getCollidingBunker(nextX + nudgeX, nextY + nudgeY)) { nextX += nudgeX; nextY += nudgeY; } else if (!getCollidingBunker(nextX - nudgeX, nextY - nudgeY)) { nextX -= nudgeX; nextY -= nudgeY; } } } if (!player.isUser) { player.ai.moving = false; if(player.ai.state === 'runningInitial') { player.ai.state = 'patrolling'; player.ai.lastMoveTime = now; } } player.isMoving = false; }
-            // Player-Player Collision
-            const allPlayers = [...team1Players, ...team2Players];
-            allPlayers.forEach(other => { if (player === other || other.isEliminated) return; const dist = Math.hypot(nextX - other.x, nextY - other.y); if (dist < COLLISION_RADIUS + COLLISION_RADIUS) { const collideDx = nextX - other.x; const collideDy = nextY - other.y; const collideDist = dist > 0 ? dist : 1; const normCollideDx = collideDx / collideDist; const normCollideDy = collideDy / collideDist; const overlap = (COLLISION_RADIUS + COLLISION_RADIUS) - collideDist; const pushAmount = (overlap / 2) + 0.1; nextX = player.x + normCollideDx * pushAmount; nextY = player.y + normCollideDy * pushAmount; const nudgeForce = 0.3; const nudgeX = -normCollideDy * nudgeForce; const nudgeY = normCollideDx * nudgeForce; if (!getCollidingBunker(nextX + nudgeX, nextY + nudgeY)) { nextX += nudgeX; nextY += nudgeY; } else if (!getCollidingBunker(nextX - nudgeX, nextY - nudgeY)) { nextX -= nudgeX; nextY -= nudgeY; } if (!player.isUser) player.ai.moving = false; player.isMoving = false; } });
-
-            // Apply Final Position
-            player.x = nextX; player.y = nextY;
         }
-        function updatePaintballs() { /* ... same logic, using createImpactParticles ... */ for (let i = paintballs.length - 1; i >= 0; i--) { const p = paintballs[i]; const prevX = p.x; const prevY = p.y; p.x += p.dx; p.y += p.dy; let removed = false; createPaintballTrail(prevX - p.dx * 0.2, prevY - p.dy * 0.2, p.color); if (p.x + p.radius < 0 || p.x - p.radius > canvas.width || p.y + p.radius < 0 || p.y - p.radius > canvas.height) { paintballs.splice(i, 1); removed = true; continue; } if (isCollidingWithBunker(p.x, p.y, p.radius)) { createSplat(p.x, p.y, '#a0aec0'); createImpactParticles(p.x, p.y, '#a0aec0', PARTICLE_COUNT_HIT / 2); paintballs.splice(i, 1); removed = true; playSound('hitBunker', 'C2'); continue; } const targetTeamArray = (p.team === selectedUserTeam) ? team2Players : team1Players; for (let j = targetTeamArray.length - 1; j >= 0; j--) { const player = targetTeamArray[j]; if (!player.isEliminated) { const dist = Math.hypot(p.x - player.x, p.y - player.y); if (dist < p.radius + COLLISION_RADIUS) { createSplat(p.x, p.y, p.color); createImpactParticles(p.x, p.y, p.color, PARTICLE_COUNT_HIT); player.isEliminated = true; player.eliminationTimestamp = Date.now(); paintballs.splice(i, 1); removed = true; playSound('hitPlayer', 'A3', '8n'); if (player.team === selectedUserTeam) team1Score--; else team2Score--; updateScoreDisplay(); checkWinCondition(); break; } } } } }
         function updateSplats() { /* ... same ... */ const now = Date.now(); for (let i = splats.length - 1; i >= 0; i--) { const splat = splats[i]; if (now - splat.creationTime > splat.duration) { splats.splice(i, 1); } } }
-        function updateParticles() { /* ... same ... */ const now = Date.now(); for (let i = particles.length - 1; i >= 0; i--) { const p = particles[i]; p.x += p.dx; p.y += p.dy; if (now - p.creationTime > p.duration) { particles.splice(i, 1); } } }
+        function updateParticles() {
+            const now = Date.now();
+            for (let i = particles.length - 1; i >= 0; i--) {
+                const p = particles[i];
+                p.x += p.dx;
+                p.y += p.dy;
+                // NEW: Apply Gravity
+                p.dy += PARTICLE_GRAVITY;
+                // Optional: Add simple friction
+                // p.dx *= 0.99;
+                // p.dy *= 0.99;
+                if (now - p.creationTime > p.duration) {
+                    particles.splice(i, 1);
+                }
+            }
+        }
         function updateMuzzleFlashes() { /* ... same ... */ const now = Date.now(); for (let i = muzzleFlashes.length - 1; i >= 0; i--) { if (now - muzzleFlashes[i].creationTime > muzzleFlashes[i].duration) { muzzleFlashes.splice(i, 1); } } }
         function updatePaintballTrails() { /* ... same ... */ const now = Date.now(); for (let i = paintballTrails.length - 1; i >= 0; i--) { if (now - paintballTrails[i].creationTime > paintballTrails[i].duration) { paintballTrails.splice(i, 1); } } }
+        // NEW: Update Screen Shake effect
+        function updateScreenShake() {
+            if (screenShakeIntensity > 0 && Date.now() - screenShakeStartTime < screenShakeDuration) {
+                // Reduce intensity over time
+                const elapsedRatio = (Date.now() - screenShakeStartTime) / screenShakeDuration;
+                screenShakeIntensity = SCREEN_SHAKE_MAX_INTENSITY * (1 - elapsedRatio);
+            } else {
+                screenShakeIntensity = 0; // Stop shaking
+            }
+        }
 
         // --- Timer ---
         function startTimer() { /* ... same ... */ if (timerIntervalId) clearInterval(timerIntervalId); timeRemaining = selectedRoundTime; updateTimerDisplay(); timerIntervalId = setInterval(() => { if (!gameActive) { clearInterval(timerIntervalId); return; } timeRemaining--; updateTimerDisplay(); if (timeRemaining <= 0) { clearInterval(timerIntervalId); timerIntervalId = null; endGameByTime(); } }, 1000); }
@@ -890,7 +1040,51 @@
         function endGame(roundEndMessage) { /* ... same logic with sound ... */ if (!gameActive) return; gameActive = false; gameStateElement.textContent = "Round Over"; if (timerIntervalId) { clearInterval(timerIntervalId); timerIntervalId = null; } if (animationFrameId) { cancelAnimationFrame(animationFrameId); animationFrameId = null; } updateScoreDisplay(); let userTeamWonRound = roundEndMessage.includes(selectedUserTeam.name + " Wins"); let opponentTeamWonRound = roundEndMessage.includes(selectedOpponentTeam.name + " Wins"); if (userTeamWonRound) { playSound('win', 'C4', '4n'); playSound('win', 'E4', '4n', '+0.2'); playSound('win', 'G4', '2n', '+0.4'); } else if (opponentTeamWonRound) { playSound('lose', 'G3', '4n'); playSound('lose', 'E3', '4n', '+0.2'); playSound('lose', 'C3', '2n', '+0.4'); } else { playSound('lose', 'E3', '2n'); } if (currentRoundNumber >= selectedRoundsPerMatch) { let matchWinnerMessage = "\n\n** MATCH OVER! **\n"; if (team1GamesWon > team2GamesWon) { matchWinnerMessage += `${selectedUserTeam.name} wins the match ${team1GamesWon} - ${team2GamesWon}!`; } else if (team2GamesWon > team1GamesWon) { matchWinnerMessage += `${selectedOpponentTeam.name} wins the match ${team2GamesWon} - ${team1GamesWon}!`; } else { matchWinnerMessage += `Match ends in a draw ${team1GamesWon} - ${team2GamesWon}!`; } showMessage(roundEndMessage + matchWinnerMessage + "\nClick Menu to play again.", 0); gameStateElement.textContent = "Match Over"; } else { showMessage(roundEndMessage + `\nStarting Round ${currentRoundNumber + 1}...`, NEXT_ROUND_DELAY - 500); setTimeout(() => { currentRoundNumber++; init(); }, NEXT_ROUND_DELAY); } }
 
         // --- Game Loop ---
-        function gameLoop() { /* ... same ... */ animationFrameId = requestAnimationFrame(gameLoop); if (!gameActive) return; globalAnimationFrameCounter++; ctx.clearRect(0, 0, canvas.width, canvas.height); team1Players.forEach(updatePlayer); team2Players.forEach(updatePlayer); updatePaintballs(); updateSplats(); updateParticles(); updateMuzzleFlashes(); updatePaintballTrails(); drawBunkers(); drawSplats(); drawPaintballTrails(); drawParticles(); team1Players.forEach(drawPlayer); team2Players.forEach(drawPlayer); drawPaintballs(); drawMuzzleFlashes(); }
+        function gameLoop() {
+            animationFrameId = requestAnimationFrame(gameLoop);
+            if (!gameActive) return;
+
+            globalAnimationFrameCounter++;
+
+            // Update Screen Shake
+            updateScreenShake();
+
+            // Apply Screen Shake Offset before clearing/drawing
+            let screenOffsetX = 0;
+            let screenOffsetY = 0;
+            if (screenShakeIntensity > 0) {
+                screenOffsetX = (Math.random() - 0.5) * 2 * screenShakeIntensity;
+                screenOffsetY = (Math.random() - 0.5) * 2 * screenShakeIntensity;
+                ctx.translate(screenOffsetX, screenOffsetY);
+            }
+
+            // Clear canvas
+            ctx.clearRect(-screenShakeIntensity, -screenShakeIntensity, canvas.width + screenShakeIntensity*2, canvas.height + screenShakeIntensity*2); // Clear slightly larger area if shaking
+
+            // Update game objects
+            team1Players.forEach(updatePlayer);
+            team2Players.forEach(updatePlayer);
+            updatePaintballs();
+            updateSplats();
+            updateParticles();
+            updateMuzzleFlashes();
+            updatePaintballTrails();
+
+            // Draw game objects
+            drawBunkers();
+            drawSplats();
+            drawPaintballTrails();
+            drawParticles();
+            team1Players.forEach(drawPlayer);
+            team2Players.forEach(drawPlayer);
+            drawPaintballs();
+            drawMuzzleFlashes();
+
+             // Reset Screen Shake Transform if active
+            if (screenShakeIntensity > 0) {
+                ctx.translate(-screenOffsetX, -screenOffsetY);
+            }
+        }
 
         // --- Initialization ---
         function init() {
@@ -915,6 +1109,7 @@
             team1Players.length = 0; team2Players.length = 0;
             userPlayer = null; player2 = null; // Reset player references
             particles.length = 0; muzzleFlashes.length = 0; paintballTrails.length = 0;
+            screenShakeIntensity = 0; // Reset screen shake
 
             // Update and show/hide P2 controls info based on game mode and current bindings
             updateInfoPanelControls(); // Update text based on current controls object
@@ -977,7 +1172,7 @@
         window.addEventListener('resize', resizeCanvas);
 
         // --- Stop Game and Return to Menu ---
-        function returnToMenu() { /* ... same cleanup, including new effect arrays ... */ console.log("Returning to menu..."); gameActive = false; if (animationFrameId) { cancelAnimationFrame(animationFrameId); animationFrameId = null; } if (timerIntervalId) { clearInterval(timerIntervalId); timerIntervalId = null; } if (messageTimeoutId) { clearTimeout(messageTimeoutId); messageTimeoutId = null; } gameContainer.classList.remove('active'); startMenu.style.display = 'flex'; team1GamesWon = 0; team2GamesWon = 0; currentRoundNumber = 1; updateScoreDisplay(); team1Players.length = 0; team2Players.length = 0; userPlayer = null; player2 = null; /* Reset P2 */ paintballs.length = 0; splats.length = 0; bunkers.length = 0; bunkerLookup = {}; particles.length = 0; muzzleFlashes.length = 0; paintballTrails.length = 0; gameStateElement.textContent = "Game State: Ready"; timerDisplayElement.textContent = "Time: 0"; messageBox.style.display = 'none'; p2ControlsInfo.style.display = 'none'; /* Hide P2 controls info */ }
+        function returnToMenu() { /* ... same cleanup, including new effect arrays ... */ console.log("Returning to menu..."); gameActive = false; if (animationFrameId) { cancelAnimationFrame(animationFrameId); animationFrameId = null; } if (timerIntervalId) { clearInterval(timerIntervalId); timerIntervalId = null; } if (messageTimeoutId) { clearTimeout(messageTimeoutId); messageTimeoutId = null; } gameContainer.classList.remove('active'); startMenu.style.display = 'flex'; team1GamesWon = 0; team2GamesWon = 0; currentRoundNumber = 1; updateScoreDisplay(); team1Players.length = 0; team2Players.length = 0; userPlayer = null; player2 = null; /* Reset P2 */ paintballs.length = 0; splats.length = 0; bunkers.length = 0; bunkerLookup = {}; particles.length = 0; muzzleFlashes.length = 0; paintballTrails.length = 0; gameStateElement.textContent = "Game State: Ready"; timerDisplayElement.textContent = "Time: 0"; messageBox.style.display = 'none'; p2ControlsInfo.style.display = 'none'; /* Hide P2 controls info */ screenShakeIntensity = 0; /* Reset screen shake */ }
 
         // --- Reset Button ---
         resetButton.addEventListener('click', () => { /* ... same ... */ if (gameActive || gameStateElement.textContent === "Match Over") { console.log("Resetting current round/match setup."); if (gameStateElement.textContent === "Match Over") { currentRoundNumber = 1; team1GamesWon = 0; team2GamesWon = 0; } init(); } else { console.log("Game not active, reset does nothing until game started."); } });
@@ -1005,7 +1200,7 @@
         // --- Control Remapping Logic ---
         function updateControlDisplay(action, key) { /* ... same ... */ const displayId = action.replace(/[A-Z]/g, letter => `-${letter.toLowerCase()}`) + '-key'; const displayElement = document.getElementById(displayId); if (displayElement) { let displayKey = key; if (key === ' ') displayKey = 'Space'; if (key.startsWith('Arrow')) displayKey = key.substring(5); displayElement.textContent = displayKey; displayElement.classList.remove('rebinding'); } }
         function updateAllControlDisplays() { /* ... same ... */ for (const action in controls) { updateControlDisplay(action, controls[action]); } updateInfoPanelControls(); }
-        function handleRebindKeyPress(e) { /* ... same ... */ e.preventDefault(); const newKey = e.key; if (newKey === 'Escape') { console.log("Rebind cancelled."); } else { console.log(`Rebinding ${actionToRebind} to ${newKey}`); controls[actionToRebind] = newKey; updateControlDisplay(actionToRebind, newKey); updateInfoPanelControls(); } document.removeEventListener('keydown', temporaryKeyListener, true); temporaryKeyListener = null; isRebinding = false; actionToRebind = null; document.querySelectorAll('.change-key-button').forEach(btn => btn.disabled = false); }
+        function handleRebindKeyPress(e) { /* ... same ... */ e.preventDefault(); const newKey = e.key; if (newKey === 'Escape') { console.log("Rebind cancelled."); updateControlDisplay(actionToRebind, controls[actionToRebind]); /* Restore display */ } else { console.log(`Rebinding ${actionToRebind} to ${newKey}`); controls[actionToRebind] = newKey; updateControlDisplay(actionToRebind, newKey); updateInfoPanelControls(); } document.removeEventListener('keydown', temporaryKeyListener, true); temporaryKeyListener = null; isRebinding = false; actionToRebind = null; document.querySelectorAll('.change-key-button').forEach(btn => btn.disabled = false); }
         controlsSection.addEventListener('click', (e) => { /* ... same ... */ if (e.target.classList.contains('change-key-button')) { if (isRebinding) return; actionToRebind = e.target.dataset.action; const displayId = actionToRebind.replace(/[A-Z]/g, letter => `-${letter.toLowerCase()}`) + '-key'; const displayElement = document.getElementById(displayId); if (displayElement) { displayElement.textContent = 'Press Key...'; displayElement.classList.add('rebinding'); isRebinding = true; document.querySelectorAll('.change-key-button').forEach(btn => btn.disabled = true); temporaryKeyListener = (event) => handleRebindKeyPress(event); document.addEventListener('keydown', temporaryKeyListener, { capture: true, once: true }); } } });
         resetControlsButton.addEventListener('click', () => { /* ... same ... */ if (isRebinding) return; console.log("Resetting controls to default"); controls = { ...defaultControls }; updateAllControlDisplays(); });
         function updateInfoPanelControls() { /* ... same ... */ p1ControlsInfo.textContent = `P1: ${controls.p1Up}/${controls.p1Left}/${controls.p1Down}/${controls.p1Right} + Click`; p2ControlsInfo.textContent = `P2: ${controls.p2Up}/${controls.p2Left}/${controls.p2Down}/${controls.p2Right} + ${controls.p2Shoot}`; }
