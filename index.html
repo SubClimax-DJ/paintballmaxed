@@ -3,290 +3,259 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>X-Ball Paintball Game - v1.5 (HUD BG)</title> <script src="https://cdn.tailwindcss.com"></script>
+    <title>Paintball Maxed</title>
+    <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
     <style>
         /* Base body styles */
         body {
             font-family: 'Press Start 2P', cursive;
-            overflow: hidden; /* Prevent scrollbars */
-            background-color: #1a202c; /* Dark background */
-            color: #e2e8f0; /* Light text */
+            overflow: hidden;
+            background-color: #1a202c;
+            color: #e2e8f0;
             display: flex;
             justify-content: center;
             align-items: center;
             min-height: 100vh;
             margin: 0;
             padding: 0;
-            position: relative; /* Needed for absolute positioning of menu/message box */
+            position: relative;
         }
-        /* Canvas styles */
+        /* Canvas styles - Pixelated Rendering */
         canvas {
-            display: block; /* Remove extra space below canvas */
+            display: block;
             background-color: #2F4F2F; /* Dark Sea Green like color */
-            border: 4px solid #4a5568; /* Medium gray border */
-            border-radius: 8px; /* Rounded corners */
-            box-shadow: 0 0 20px rgba(0, 0, 0, 0.5); /* Outer shadow */
-            max-width: 100%; /* Ensure canvas doesn't overflow container */
-            max-height: 85vh; /* Limit canvas height relative to viewport */
-            aspect-ratio: 16 / 9; /* Maintain widescreen aspect ratio */
-            cursor: crosshair; /* Indicate interaction area */
+            border: 4px solid #000; /* Black border */
+            /* Removed border-radius */
+            box-shadow: none; /* Removed shadow */
+            max-width: 100%;
+            max-height: 85vh;
+            aspect-ratio: 16 / 9;
+            cursor: crosshair;
+            image-rendering: pixelated; /* Crucial for sharp pixels */
+            image-rendering: crisp-edges; /* Wider browser support */
         }
-        /* Container for game elements (canvas and UI panels) */
+        /* Container for game elements */
         .game-container {
             display: flex;
             flex-direction: column;
             align-items: center;
-            gap: 0.5rem; /* Space between UI panels and canvas */
-            padding: 1rem; /* Padding around the game area */
-            width: 95%; /* Use most of the width */
-            max-width: 1200px; /* Limit maximum width */
-            visibility: hidden; /* Hide game container initially */
+            gap: 0.5rem;
+            padding: 1rem;
+            width: 95%;
+            max-width: 1200px;
+            visibility: hidden;
         }
         .game-container.active {
-             visibility: visible; /* Show when game starts */
+             visibility: visible;
         }
 
-        /* --- UI Polish Starts --- */
+        /* --- UI Pixel Art Style --- */
 
-        /* Top panel styles (scores, timer) */
-        .top-panel {
+        /* Top/Bottom Panels - Solid Color, Hard Edges */
+        .top-panel, .bottom-panel {
             display: flex;
-            justify-content: space-between; /* Space out elements */
+            justify-content: space-between;
             align-items: center;
             width: 100%;
-            max-width: 1200px; /* Match canvas max width */
+            max-width: 1200px;
             padding: 0.5rem 1rem;
-            margin-bottom: 0.5rem; /* Space below top panel */
-            flex-wrap: wrap; /* Allow wrapping on smaller screens */
-            gap: 1rem; /* Space between wrapped items */
-            /* NEW: HUD Background */
+            flex-wrap: wrap;
+            gap: 1rem;
+            /* RE-ADDED: HUD Background */
             background-image: linear-gradient(rgba(45, 55, 72, 0.7), rgba(45, 55, 72, 0.7)), url('https://i.postimg.cc/FHCvDJbL/paintballhud.png');
             background-size: cover;
             background-position: center;
             background-color: rgba(45, 55, 72, 0.7); /* Fallback/Blend color */
-            border: 2px solid #4a5568; /* Border */
-            border-radius: 6px; /* Rounded corners */
+            border: 4px solid #000; /* Black border */
+            /* Removed border-radius, box-shadow */
         }
+        .top-panel { margin-bottom: 0.5rem; }
+        .bottom-panel { margin-top: 0.5rem; }
+
+        /* Text Shadows for Readability */
+        .team-scores div, .timer, .overall-score, .info-panel div, .ammo-info {
+            text-shadow: 2px 2px #000; /* Hard black shadow */
+        }
+
         /* Team score container */
         .team-scores {
             display: flex;
             justify-content: center;
-            gap: 2rem; /* Space between team scores */
+            gap: 2rem;
             font-size: 1.1rem;
             font-weight: bold;
-            order: 1; /* Position on the left */
-            font-family: 'Press Start 2P', cursive; /* Ensure font */
+            order: 1;
+            font-family: 'Press Start 2P', cursive;
         }
-        /* Add text shadow for readability over background */
-        .team-scores div {
-             text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.8);
-        }
-        /* Game stats container (timer, overall score) */
+        /* Game stats container */
         .game-stats {
             display: flex;
             flex-direction: column;
             align-items: center;
-            order: 2; /* Position in the center */
-            font-family: 'Press Start 2P', cursive; /* Ensure font */
+            order: 2;
+            font-family: 'Press Start 2P', cursive;
         }
         /* Timer display style */
         .timer {
             font-size: 1.2rem;
-            color: #fbd38d; /* Orange-yellow timer */
-            text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.8); /* Add text shadow */
+            color: #fbd38d;
         }
-        /* Overall score display style (round, wins) */
+        /* Overall score display style */
         .overall-score {
             font-size: 0.7rem;
-            color: #a0aec0; /* Lighter gray */
+            color: #a0aec0;
             margin-top: 0.25rem;
             text-align: center;
-            text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.8); /* Add text shadow */
         }
         /* Score colors are set dynamically via JS */
         .score-team1 {}
         .score-team2 {}
 
-        /* Bottom panel styles (info, controls) */
-        .bottom-panel {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            width: 100%;
-            max-width: 1200px; /* Match canvas max width */
-            padding: 0.5rem 1rem;
-            margin-top: 0.5rem; /* Space above bottom panel */
-            flex-wrap: wrap; /* Allow wrapping */
-            gap: 0.5rem;
-            /* NEW: HUD Background */
-            background-image: linear-gradient(rgba(45, 55, 72, 0.7), rgba(45, 55, 72, 0.7)), url('https://i.postimg.cc/FHCvDJbL/paintballhud.png');
-            background-size: cover;
-            background-position: center;
-            background-color: rgba(45, 55, 72, 0.7); /* Fallback/Blend color */
-            border: 2px solid #4a5568;
-            border-radius: 6px;
-        }
-        /* Info panel (controls text, game state) */
+        /* Info panel */
         .info-panel {
             font-size: 0.75rem;
             color: #a0aec0;
             text-align: left;
-            flex-grow: 1; /* Take available space */
-            font-family: 'Press Start 2P', cursive; /* Ensure font */
-            line-height: 1.4; /* Improve readability */
+            flex-grow: 1;
+            font-family: 'Press Start 2P', cursive;
+            line-height: 1.4;
         }
-         .info-panel div { /* Style individual lines within info panel */
-            margin-bottom: 0.2rem;
-            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.7); /* Add text shadow */
-         }
-         /* Style for ammo display */
-         .ammo-info {
-             font-weight: bold;
-             color: #fbd38d; /* Orange-yellow like timer */
-             text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.7); /* Add text shadow */
-         }
-         .reloading-text {
-             color: #f56565; /* Red when reloading */
-             font-style: italic;
-         }
+         .info-panel div { margin-bottom: 0.2rem; }
+         .ammo-info { font-weight: bold; color: #fbd38d; }
+         .reloading-text { color: #f56565; font-style: italic; }
 
-        /* Controls container (buttons) */
+        /* Controls container */
         .controls-container {
             display: flex;
             align-items: center;
-            gap: 1rem; /* Space between buttons */
-            order: 3; /* Position on the right */
+            gap: 1rem;
+            order: 3;
         }
-        /* Shared button base style */
+        /* Shared button base style - Pixelated */
         .game-button {
              font-family: 'Press Start 2P', cursive;
-             border: 2px solid; /* Border color set individually */
-             padding: 8px 16px;
+             border: 4px solid #000; /* Thicker black border */
+             padding: 6px 12px; /* Adjusted padding */
              font-size: 0.8rem;
-             border-radius: 6px;
+             /* Removed border-radius */
              cursor: pointer;
-             transition: background-color 0.2s ease, transform 0.1s ease, box-shadow 0.1s ease;
-             box-shadow: 0 3px 5px rgba(0,0,0,0.4); /* Button shadow */
-             white-space: nowrap; /* Prevent button text wrapping */
-             text-transform: uppercase; /* Uppercase button text */
-             /* Slight background dimming for buttons */
-             background-color: rgba(0,0,0,0.2);
+             transition: none; /* Remove smooth transitions */
+             box-shadow: none; /* Remove shadow */
+             white-space: nowrap;
+             text-transform: uppercase;
+             background-color: rgba(74, 85, 104, 0.7); /* Adjusted default button background */
+             color: #e2e8f0; /* Light text */
+             image-rendering: pixelated;
+             image-rendering: crisp-edges;
         }
-        /* Button pressed effect */
+        /* Button pressed effect - Simple color change */
         .game-button:active {
-             transform: translateY(2px); /* Move down slightly */
-             box-shadow: 0 1px 2px rgba(0,0,0,0.4); /* Reduce shadow */
+             transform: none; /* Remove transform */
+             box-shadow: none;
+             filter: brightness(0.8); /* Dim slightly */
         }
 
-        /* Reset Button Specific Style */
-        .reset-button {
-             background-color: rgba(251, 211, 141, 0.8); color: #2d3748; border-color: #f6ad55; /* Orange/Yellow */
-        }
-        .reset-button:hover { background-color: rgba(246, 173, 85, 0.9); } /* Darker on hover */
+        /* Button Specific Styles - Solid Colors */
+        .reset-button { background-color: rgba(246, 173, 85, 0.8); color: #1a202c; border-color: #000; }
+        .reset-button:hover { filter: brightness(1.1); }
+        .reset-button:active { filter: brightness(0.8); }
 
-        /* Menu Button Specific Style */
-        .menu-button {
-             background-color: rgba(245, 101, 101, 0.8); color: #1a202c; border-color: #c53030; /* Red */
-        }
-        .menu-button:hover { background-color: rgba(229, 62, 62, 0.9); } /* Darker on hover */
+        .menu-button { background-color: rgba(229, 62, 62, 0.8); color: #1a202c; border-color: #000; }
+        .menu-button:hover { filter: brightness(1.1); }
+        .menu-button:active { filter: brightness(0.8); }
 
-        /* Mute Button Specific Style */
-        .mute-button {
-             background-color: rgba(160, 174, 192, 0.8); color: #1a202c; border-color: #718096; /* Gray */
-        }
-        .mute-button:hover { background-color: rgba(113, 128, 150, 0.9); } /* Darker gray on hover */
-        .mute-button.muted { /* Style when muted */
-             background-color: rgba(74, 85, 104, 0.8); color: #a0aec0; border-color: #2d3748;
-        }
+        .mute-button { background-color: rgba(113, 128, 150, 0.8); color: #1a202c; border-color: #000; }
+        .mute-button:hover { filter: brightness(1.1); }
+        .mute-button:active { filter: brightness(0.8); }
+        .mute-button.muted { background-color: rgba(74, 85, 104, 0.8); color: #a0aec0; }
 
 
-        /* --- UI Polish Ends --- */
-
-        /* Message Box Style (for round start/end messages) */
+        /* Message Box Style - Pixelated */
         .message-box {
-            position: absolute; /* Position relative to body */
+            position: absolute;
             top: 50%; left: 50%;
-            transform: translate(-50%, -50%); /* Center precisely */
-            background-color: rgba(0, 0, 0, 0.85); /* Darker, more opaque background */
+            transform: translate(-50%, -50%);
+            background-color: rgba(0, 0, 0, 0.9); /* More opaque */
             color: white;
-            padding: 25px 45px; /* Generous padding */
-            border-radius: 10px;
-            font-size: 1.8rem; /* Large font for messages */
+            padding: 20px 40px;
+            /* Removed border-radius */
+            font-size: 1.8rem;
             text-align: center;
-            z-index: 100; /* Ensure it's above the canvas */
-            display: none; /* Hidden by default */
-            border: 3px solid #cbd5e0; /* Light border */
-            box-shadow: 0 5px 15px rgba(0,0,0,0.4); /* Shadow for emphasis */
-            white-space: pre-line; /* Allow line breaks using \n */
+            z-index: 100;
+            display: none;
+            border: 4px solid #fff; /* White border */
+            box-shadow: none; /* Removed shadow */
+            white-space: pre-line;
+            text-shadow: 2px 2px #000;
         }
 
-        /* Eliminated Player Style (applied via JS) */
-        .eliminated { opacity: 0.4; } /* Fade out eliminated players */
+        /* Eliminated Player Style */
+        .eliminated { opacity: 0.4; }
 
         /* --- Start Menu Styles --- */
         #startMenu {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-            /* UPDATED Background Image */
             background-image: linear-gradient(rgba(26, 32, 44, 0.85), rgba(26, 32, 44, 0.85)), url('https://i.postimg.cc/1zwGJyGp/Gemini-Generated-Image-4dxt6w4dxt6w4dxt.jpg');
-            background-color: rgba(26, 32, 44, 0.95); /* Fallback color */
-            background-size: cover; /* Cover the entire area */
-            background-position: center center; /* Center the image */
+            background-color: rgba(26, 32, 44, 0.95);
+            background-size: cover;
+            background-position: center center;
             background-repeat: no-repeat;
-            display: flex; /* Use flexbox for centering */
+            display: flex;
             flex-direction: column;
             justify-content: center;
             align-items: center;
-            z-index: 200; /* Ensure menu is above everything else */
-            color: #e2e8f0; /* Default text color */
+            z-index: 200;
+            color: #e2e8f0;
             font-family: 'Press Start 2P', cursive;
-            padding: 1rem; /* Padding inside the menu */
-            box-sizing: border-box; /* Include padding in width/height */
+            padding: 1rem;
+            box-sizing: border-box;
             text-align: center;
-            overflow-y: auto; /* Allow scrolling if content overflows on small screens */
+            overflow-y: auto;
         }
 
         /* Menu Title */
         #startMenu h1 {
             font-size: 2rem;
-            margin-bottom: 0.5rem; /* Reduced margin */
-            color: #fbd38d; /* Orange title */
-            text-shadow: 2px 2px #c05621, 0 0 10px rgba(0,0,0,0.7); /* Dark orange shadow + subtle outer glow */
-            margin-top: 1rem; /* Reduced margin */
+            margin-bottom: 0.5rem;
+            color: #fbd38d;
+            text-shadow: 2px 2px #c05621, 4px 4px #000; /* Added black offset */
+            margin-top: 1rem;
         }
-        /* Container for menu options */
+        /* Container for menu options - Pixelated */
         .menu-options {
-            background-color: rgba(45, 55, 72, 0.85);
+            background-color: rgba(45, 55, 72, 0.75); /* Slightly less transparent */
             padding: 1.5rem 2rem;
-            border-radius: 8px;
-            border: 3px solid #4a5568; /* Border matching UI */
-            box-shadow: 0 4px 10px rgba(0,0,0,0.4);
+            /* Removed border-radius */
+            border: 4px solid #000; /* Black border */
+            box-shadow: none; /* Removed shadow */
             display: flex;
             flex-direction: column;
-            gap: 1.5rem; /* Increased gap between sections */
+            gap: 1.5rem;
             align-items: center;
-            width: 90%; /* Relative width */
-            max-width: 750px; /* Increased max width slightly */
-            margin-bottom: 1rem; /* Reduced margin */
+            width: 90%;
+            max-width: 750px;
+            margin-bottom: 1rem;
         }
         /* Section headings */
         .menu-options h2 {
             font-size: 1.1rem;
             color: #a0aec0;
             margin-bottom: 0.5rem;
-            border-bottom: 1px dashed #4a5568;
+            border-bottom: 2px dashed #000; /* Dashed black border */
             padding-bottom: 0.25rem;
             width: 100%;
             text-align: center;
+            text-shadow: 2px 2px #000;
         }
 
-        /* Row container for options (allows wrapping) */
+        /* Row container for options */
         .option-row {
             display: flex;
             flex-wrap: wrap;
             justify-content: center;
-            gap: 1rem 1.5rem; /* Row and column gap */
+            gap: 1rem 1.5rem;
             width: 100%;
         }
         /* Grouping for label and input/select */
@@ -294,62 +263,66 @@
             display: flex;
             flex-direction: column;
             align-items: center;
-            gap: 0.5rem; /* Space between label and input */
-            width: auto; /* Allow natural width */
+            gap: 0.5rem;
+            width: auto;
         }
         /* Option labels */
         .option-group label {
             font-size: 0.8rem;
-            color: #a0aec0; /* Lighter gray label */
-            white-space: nowrap; /* Prevent label wrapping */
-            text-shadow: 1px 1px 2px rgba(0,0,0,0.5); /* Add shadow for readability */
+            color: #a0aec0;
+            white-space: nowrap;
+            text-shadow: 2px 2px #000; /* Hard shadow */
         }
-        /* Input fields (number) and select dropdowns */
+        /* Input fields and select dropdowns - Pixelated */
         .option-group input[type="number"], .option-group select {
-            font-family: 'Press Start 2P', cursive; /* Use game font */
+            font-family: 'Press Start 2P', cursive;
             font-size: 0.9rem;
-            padding: 8px 10px;
-            background-color: #1a202c; /* Dark background for inputs */
-            border: 2px solid #4a5568; /* Medium gray border */
-            color: #e2e8f0; /* Light text */
-            border-radius: 4px;
-            text-align: center; /* Center text in inputs */
+            padding: 6px 8px; /* Adjusted padding */
+            background-color: #1a202c;
+            border: 2px solid #000; /* Black border */
+            color: #e2e8f0;
+            /* Removed border-radius */
+            text-align: center;
         }
         /* Style number inputs */
         .option-group input[type="number"] {
-            width: 70px; /* Fixed width for number inputs */
-            -moz-appearance: textfield; /* Hide spinners in Firefox */
+            width: 70px;
+            -moz-appearance: textfield;
         }
-        /* Hide spin buttons in Chrome, Safari, Edge, Opera */
+        /* Hide spin buttons */
         .option-group input[type="number"]::-webkit-outer-spin-button,
         .option-group input[type="number"]::-webkit-inner-spin-button {
             -webkit-appearance: none; margin: 0;
         }
         /* Style select dropdowns */
         .option-group select {
-            width: 200px; /* Fixed width for dropdowns */
-            text-align-last: center; /* Center selected option text */
+            width: 200px;
+            text-align-last: center;
             cursor: pointer;
+            appearance: none; /* Basic pixel look */
+             background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' fill='none' viewBox='0 0 12 8'%3E%3Cpath stroke='%23e2e8f0' stroke-linecap='square' stroke-width='2' d='M1 1l5 5 5-5'/%3E%3C/svg%3E"); /* Simple arrow */
+             background-repeat: no-repeat;
+             background-position: right 0.5rem center;
+             padding-right: 1.5rem; /* Space for arrow */
         }
-        /* Style options within the select dropdown */
         .option-group select option {
-            background-color: #2d3748; /* Match dropdown background */
-            color: #e2e8f0; /* Match dropdown text color */
-            font-size: 0.8rem; /* Slightly smaller font for options */
+            background-color: #2d3748;
+            color: #e2e8f0;
+            font-size: 0.8rem;
         }
 
         /* --- Map Selection Styles --- */
         .map-selection-container {
             display: flex;
-            flex-wrap: wrap; /* Allow wrapping on smaller screens */
+            flex-wrap: wrap;
             justify-content: center;
-            gap: 1.5rem; /* Space between map options */
+            gap: 1.5rem;
             width: 100%;
             margin-top: 0.5rem;
         }
         .map-option {
             display: flex;
-            flex-direction: column; /* Stack label/radio and canvas */
+            flex-direction: column;
             align-items: center;
             gap: 0.5rem;
             cursor: pointer;
@@ -360,45 +333,45 @@
             gap: 0.5rem;
             font-size: 0.9rem;
             cursor: pointer;
-            text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
+            text-shadow: 2px 2px #000;
         }
         .map-option input[type="radio"] {
             cursor: pointer;
-            /* Using custom radio style */
             appearance: none;
             background-color: #1a202c;
-            border: 2px solid #4a5568;
+            border: 2px solid #000; /* Black border */
             width: 1em;
             height: 1em;
-            border-radius: 50%;
+            /* Removed border-radius */
             display: grid;
             place-content: center;
-            margin: 0; /* Reset margin */
+            margin: 0;
         }
         .map-option input[type="radio"]::before {
             content: "";
-            width: 0.5em;
-            height: 0.5em;
-            border-radius: 50%;
+            width: 0.6em; /* Slightly larger fill */
+            height: 0.6em;
+            /* Removed border-radius */
             transform: scale(0);
-            transition: 120ms transform ease-in-out;
+            transition: none; /* No transition */
             background-color: #fbd38d;
         }
         .map-option input[type="radio"]:checked::before {
             transform: scale(1);
         }
         .map-preview-canvas {
-            width: 120px; /* Adjust size as needed */
-            height: 67.5px; /* Maintain 16:9 aspect ratio */
-            border: 2px solid #4a5568;
-            background-color: #2F4F2F; /* Match game background */
-            border-radius: 4px;
-            image-rendering: pixelated; /* Keep pixels sharp */
+            width: 120px;
+            height: 67.5px;
+            border: 2px solid #000; /* Black border */
+            background-color: #2F4F2F;
+            /* Removed border-radius */
+            image-rendering: pixelated;
+            image-rendering: crisp-edges;
         }
          /* Highlight selected map preview */
         .map-option input[type="radio"]:checked + .map-preview-canvas {
             border-color: #fbd38d;
-            box-shadow: 0 0 8px rgba(251, 211, 141, 0.5);
+            box-shadow: none; /* Removed glow */
         }
 
 
@@ -413,27 +386,27 @@
             gap: 0.5rem;
             font-size: 0.9rem;
             cursor: pointer;
-            text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
+            text-shadow: 2px 2px #000;
         }
         .game-mode-options input[type="radio"] {
             cursor: pointer;
              appearance: none;
              background-color: #1a202c;
-             border: 2px solid #4a5568;
+             border: 2px solid #000; /* Black border */
              width: 1em;
              height: 1em;
-             border-radius: 50%;
+             /* Removed border-radius */
              display: grid;
              place-content: center;
              margin: 0;
         }
          .game-mode-options input[type="radio"]::before {
              content: "";
-             width: 0.5em;
-             height: 0.5em;
-             border-radius: 50%;
+             width: 0.6em;
+             height: 0.6em;
+             /* Removed border-radius */
              transform: scale(0);
-             transition: 120ms transform ease-in-out;
+             transition: none;
              background-color: #fbd38d;
          }
          .game-mode-options input[type="radio"]:checked::before {
@@ -442,8 +415,8 @@
 
         /* Styles for Controls Section */
         .controls-section {
-            margin-top: 1rem; /* Reduced margin */
-            padding-top: 1rem; /* Reduced padding */
+            margin-top: 1rem;
+            padding-top: 1rem;
             width: 100%;
             display: flex;
             flex-direction: column;
@@ -453,24 +426,24 @@
         .controls-title { /* Now using h2 */ }
         .controls-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); /* Responsive grid */
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
             gap: 1rem;
             width: 100%;
-            max-width: 600px; /* Limit grid width */
+            max-width: 600px;
         }
         .control-group {
             display: flex;
             flex-direction: column;
             align-items: center;
             gap: 0.5rem;
-            background-color: rgba(26, 32, 44, 0.6);
+            background-color: rgba(26, 32, 44, 0.7); /* Darker, less opaque */
             padding: 0.75rem;
-            border-radius: 6px;
-            border: 1px solid #4a5568;
+            border: 2px solid #000; /* Black border */
+            /* Removed border-radius */
         }
         .control-row {
             display: flex;
-            justify-content: space-between; /* Align items in the row */
+            justify-content: space-between;
             align-items: center;
             width: 100%;
             gap: 0.5rem;
@@ -479,67 +452,61 @@
             font-size: 0.75rem;
             color: #a0aec0;
             text-align: left;
-            flex-grow: 1; /* Allow label to take space */
+            flex-grow: 1;
+            text-shadow: 2px 2px #000;
         }
         .control-key-display {
             font-size: 0.8rem;
             background-color: #1a202c;
-            color: #fbd38d; /* Highlight key */
+            color: #fbd38d;
             padding: 4px 8px;
-            border: 1px solid #4a5568;
-            border-radius: 4px;
-            min-width: 60px; /* Ensure minimum width */
+            border: 2px solid #000; /* Black border */
+            /* Removed border-radius */
+            min-width: 60px;
             text-align: center;
         }
-        .control-key-display.rebinding { /* Style when waiting for input */
-            color: #f56565;
-            font-style: italic;
-        }
+        .control-key-display.rebinding { color: #f56565; font-style: italic; }
         .change-key-button {
             font-family: 'Press Start 2P', cursive;
             font-size: 0.65rem;
             padding: 4px 8px;
             background-color: #4a5568;
             color: #e2e8f0;
-            border: 1px solid #718096;
-            border-radius: 4px;
+            border: 2px solid #000; /* Black border */
+            /* Removed border-radius */
             cursor: pointer;
-            transition: background-color 0.2s ease;
-            text-transform: none; /* Override uppercase */
+            transition: none;
+            text-transform: none;
         }
-        .change-key-button:hover {
-            background-color: #718096;
-        }
-        .change-key-button:disabled { /* Style when rebinding */
-            opacity: 0.5;
-            cursor: not-allowed;
-        }
+        .change-key-button:hover { filter: brightness(1.1); }
+        .change-key-button:active { filter: brightness(0.8); }
+        .change-key-button:disabled { opacity: 0.5; cursor: not-allowed; }
 
 
-        /* Start Match Button */
+        /* Start Match Button - Pixelated */
         #startButton {
             font-family: 'Press Start 2P', cursive;
-            background-color: #68d391; /* Green */
-            color: #1a202c; /* Dark text */
-            border: 2px solid #38a169; /* Darker green border */
-            padding: 10px 20px;
+            background-color: #48bb78; /* Solid green */
+            color: #1a202c;
+            border: 4px solid #000; /* Black border */
+            padding: 8px 16px; /* Adjusted padding */
             font-size: 1rem;
-            border-radius: 6px;
+            /* Removed border-radius */
             cursor: pointer;
-            transition: background-color 0.2s ease, transform 0.1s ease;
-            box-shadow: 0 3px 6px rgba(0,0,0,0.3);
-            margin-top: 1.5rem; /* Increased space above button */
+            transition: none;
+            box-shadow: none;
+            margin-top: 1.5rem;
             text-transform: uppercase;
         }
-        #startButton:hover { background-color: #48bb78; } /* Darker green on hover */
-        #startButton:active { transform: translateY(1px); box-shadow: 0 2px 4px rgba(0,0,0,0.3); } /* Press effect */
+        #startButton:hover { filter: brightness(1.1); }
+        #startButton:active { filter: brightness(0.8); transform: none; }
 
-        /* UPDATED Creator Credit Style */
+        /* Creator Credit Style */
         .creator-credit {
             font-size: 0.65rem;
             color: #718096;
             opacity: 0.8;
-            text-shadow: 1px 1px 1px rgba(0,0,0,0.7);
+            text-shadow: 1px 1px #000; /* Hard shadow */
             margin-top: 0.25rem;
             margin-bottom: 1rem;
             text-align: center;
@@ -551,8 +518,8 @@
 
     <div id="startMenu">
         <div class="menu-options">
-            <h1>X-Ball</h1>
-            <p class="creator-credit">Created by Max Prebeg - Graphics Upgraded 2.2</p>
+            <h1>Paintball Maxed</h1>
+            <p class="creator-credit">created by Max Prebeg</p>
 
             <div>
                 <h2>Game Settings</h2>
@@ -727,6 +694,11 @@
         // --- Canvas and DOM Element Setup ---
         const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
+        // Disable anti-aliasing for crisp pixels
+        ctx.imageSmoothingEnabled = false;
+        ctx.webkitImageSmoothingEnabled = false;
+        ctx.mozImageSmoothingEnabled = false;
+
         const scoreTeam1Element = document.getElementById('scoreTeam1');
         const scoreTeam2Element = document.getElementById('scoreTeam2');
         const gameStateElement = document.getElementById('gameState');
@@ -799,7 +771,7 @@
         // --- Game Constants ---
         const PLAYER_RADIUS = 10;
         const PLAYER_SPEED = 4.0;
-        const PAINTBALL_RADIUS = 4;
+        const PAINTBALL_RADIUS = 3; // Slightly smaller for pixel look
         const PAINTBALL_SPEED = 8;
         const PAINTBALL_SPREAD_ANGLE = 0.08;
         const FIRE_RATE_DELAY = 120;
@@ -817,15 +789,26 @@
         const NEXT_ROUND_DELAY = 3000;
 
         // --- Splat Constants ---
-        const SPLAT_RADIUS_BASE = 8; const SPLAT_RADIUS_VARIANCE = 4; const SPLAT_DURATION = 1500;
+        const SPLAT_RADIUS_BASE = 6; // Smaller base for pixel style
+        const SPLAT_RADIUS_VARIANCE = 3;
+        const SPLAT_DURATION = 1500;
 
         // --- Graphics Effect Constants ---
-        const SHADOW_OFFSET_X = 3; const SHADOW_OFFSET_Y = 5; const SHADOW_ALPHA = 0.3;
-        const MUZZLE_FLASH_DURATION = 80; const MUZZLE_FLASH_RADIUS = 8;
-        const PARTICLE_COUNT_HIT = 5; const PARTICLE_SPEED = 2; const PARTICLE_DURATION = 400; const PARTICLE_RADIUS = 1.5; const PARTICLE_GRAVITY = 0.03;
-        const TRAIL_PARTICLE_DURATION = 150; const TRAIL_PARTICLE_RADIUS = 2;
+        const SHADOW_OFFSET_X = 2; // Smaller shadow offset
+        const SHADOW_OFFSET_Y = 2;
+        const SHADOW_ALPHA = 0.5; // Darker shadow
+        const MUZZLE_FLASH_DURATION = 60; // Shorter flash
+        const MUZZLE_FLASH_RADIUS = 6; // Smaller flash
+        const PARTICLE_COUNT_HIT = 4; // Fewer particles
+        const PARTICLE_SPEED = 1.5;
+        const PARTICLE_DURATION = 300;
+        const PARTICLE_SIZE = 2; // Use size instead of radius for squares
+        const PARTICLE_GRAVITY = 0.03;
+        const TRAIL_PARTICLE_DURATION = 100;
+        const TRAIL_PARTICLE_SIZE = 2; // Use size
         const ELIMINATION_CUE_DURATION = 500; const PLAYER_HIT_FLASH_DURATION = 150;
-        const SCREEN_SHAKE_MAX_INTENSITY = 3; const SCREEN_SHAKE_HIT_DURATION = 250;
+        const SCREEN_SHAKE_MAX_INTENSITY = 2; // Less intense shake
+        const SCREEN_SHAKE_HIT_DURATION = 200;
 
         // --- Sprite/Animation Constants ---
         const PLAYER_SPRITE_WIDTH = PLAYER_RADIUS * 1.8; const PLAYER_SPRITE_HEIGHT = PLAYER_RADIUS * 1.8;
@@ -1014,30 +997,272 @@
         function handlePlayer2Shoot() { /* ... same, calls shootPaintball which now checks ammo/reload ... */ if (!gameActive || !player2 || player2.isEliminated) return; const angle = player2.facingAngle; const targetX = player2.x + Math.cos(angle) * 10000; const targetY = player2.y + Math.sin(angle) * 10000; shootPaintball(player2, targetX, targetY); }
 
         // --- Splat Creation ---
-        function createSplat(x, y, color) { /* ... same ... */ const splat = { x: x, y: y, color: color, radius: SPLAT_RADIUS_BASE + (Math.random() * SPLAT_RADIUS_VARIANCE * 2) - SPLAT_RADIUS_VARIANCE, creationTime: Date.now(), duration: SPLAT_DURATION + (Math.random() * 500) - 250 }; splats.push(splat); }
+        function createSplat(x, y, color) {
+            // Pixelated splat - draw multiple small squares
+            const numSplats = 5 + Math.floor(Math.random() * 5); // 5-9 squares
+            const baseRadius = SPLAT_RADIUS_BASE * (0.5 + Math.random() * 0.5); // Random base size
+            for (let i = 0; i < numSplats; i++) {
+                 const angle = Math.random() * Math.PI * 2;
+                 const dist = Math.random() * baseRadius;
+                 const splatX = x + Math.cos(angle) * dist;
+                 const splatY = y + Math.sin(angle) * dist;
+                 const size = 1 + Math.floor(Math.random() * 3); // 1x1 to 3x3 square
+
+                 splats.push({
+                     x: Math.floor(splatX), // Snap to pixel grid
+                     y: Math.floor(splatY),
+                     size: size,
+                     color: color,
+                     creationTime: Date.now(),
+                     duration: SPLAT_DURATION + (Math.random() * 500) - 250
+                 });
+            }
+        }
 
         // --- Graphics Effect Creation Functions ---
-        /* ... same: createMuzzleFlash, createImpactParticles, createPaintballTrail, triggerScreenShake ... */
-        function createMuzzleFlash(x, y, color) { muzzleFlashes.push({ x: x, y: y, color: color, radius: MUZZLE_FLASH_RADIUS, creationTime: Date.now(), duration: MUZZLE_FLASH_DURATION }); }
-        function createImpactParticles(x, y, color, count) { for (let i = 0; i < count; i++) { const angle = Math.random() * Math.PI * 2; const speed = PARTICLE_SPEED * (0.5 + Math.random() * 0.8); particles.push({ x: x, y: y, dx: Math.cos(angle) * speed, dy: Math.sin(angle) * speed, radius: PARTICLE_RADIUS * (0.8 + Math.random() * 0.4), color: color, creationTime: Date.now(), duration: PARTICLE_DURATION * (0.7 + Math.random() * 0.6) }); } }
-        function createPaintballTrail(x, y, color) { paintballTrails.push({ x: x, y: y, radius: TRAIL_PARTICLE_RADIUS, color: color, creationTime: Date.now(), duration: TRAIL_PARTICLE_DURATION }); }
-        function triggerScreenShake(intensity = SCREEN_SHAKE_MAX_INTENSITY, duration = SCREEN_SHAKE_HIT_DURATION) { if (!isMuted) { screenShakeIntensity = intensity; screenShakeDuration = duration; screenShakeStartTime = Date.now(); } }
+        // Pixelated Muzzle Flash
+        function createMuzzleFlash(x, y, color) {
+             muzzleFlashes.push({
+                 x: Math.floor(x), y: Math.floor(y), color: color,
+                 size: MUZZLE_FLASH_RADIUS * 2, // Use size
+                 creationTime: Date.now(),
+                 duration: MUZZLE_FLASH_DURATION
+             });
+        }
+        // Pixelated Particles
+        function createImpactParticles(x, y, color, count) {
+            for (let i = 0; i < count; i++) {
+                const angle = Math.random() * Math.PI * 2;
+                const speed = PARTICLE_SPEED * (0.5 + Math.random() * 0.8);
+                particles.push({
+                    x: Math.floor(x), y: Math.floor(y),
+                    dx: Math.cos(angle) * speed,
+                    dy: Math.sin(angle) * speed,
+                    size: PARTICLE_SIZE, // Use fixed size
+                    color: color,
+                    creationTime: Date.now(),
+                    duration: PARTICLE_DURATION * (0.7 + Math.random() * 0.6)
+                });
+            }
+        }
+        // Pixelated Trail
+        function createPaintballTrail(x, y, color) {
+             paintballTrails.push({
+                 x: Math.floor(x), y: Math.floor(y),
+                 size: TRAIL_PARTICLE_SIZE,
+                 color: color,
+                 creationTime: Date.now(),
+                 duration: TRAIL_PARTICLE_DURATION
+             });
+        }
+        function triggerScreenShake(intensity = SCREEN_SHAKE_MAX_INTENSITY, duration = SCREEN_SHAKE_HIT_DURATION) { /* ... same ... */ if (!isMuted) { screenShakeIntensity = intensity; screenShakeDuration = duration; screenShakeStartTime = Date.now(); } }
 
         // --- Drawing Functions ---
-        /* ... same: drawBunkers, drawPlayer (already includes hit flash), drawPaintballs, drawSplats, drawMuzzleFlashes, drawParticles, drawPaintballTrails ... */
-        function drawBunkers() { const highlightOffset = 1.5; const highlightColor = 'rgba(255, 255, 255, 0.15)'; const shadowColor = 'rgba(0, 0, 0, 0.2)'; const textureLineColor = 'rgba(0, 0, 0, 0.08)'; const textureLineSpacing = 8; bunkers.forEach(bunker => { const gradient = ctx.createLinearGradient(bunker.x, bunker.y, bunker.x + bunker.width, bunker.y + bunker.height); gradient.addColorStop(0, '#A08C61'); gradient.addColorStop(1, '#8C7A51'); ctx.fillStyle = gradient; ctx.beginPath(); if (bunker.shape === 'dorito') { ctx.moveTo(bunker.x + bunker.width / 2, bunker.y); ctx.lineTo(bunker.x + bunker.width, bunker.y + bunker.height); ctx.lineTo(bunker.x, bunker.y + bunker.height); ctx.closePath(); } else { ctx.rect(bunker.x, bunker.y, bunker.width, bunker.height); } ctx.fill(); ctx.strokeStyle = highlightColor; ctx.lineWidth = highlightOffset; ctx.beginPath(); ctx.moveTo(bunker.x + highlightOffset / 2, bunker.y + bunker.height - highlightOffset / 2); ctx.lineTo(bunker.x + highlightOffset / 2, bunker.y + highlightOffset / 2); ctx.lineTo(bunker.x + bunker.width - highlightOffset / 2, bunker.y + highlightOffset / 2); ctx.stroke(); ctx.strokeStyle = shadowColor; ctx.lineWidth = highlightOffset; ctx.beginPath(); ctx.moveTo(bunker.x + bunker.width - highlightOffset / 2, bunker.y + highlightOffset / 2); ctx.lineTo(bunker.x + bunker.width - highlightOffset / 2, bunker.y + bunker.height - highlightOffset / 2); ctx.lineTo(bunker.x + highlightOffset / 2, bunker.y + bunker.height - highlightOffset / 2); ctx.stroke(); ctx.save(); ctx.strokeStyle = textureLineColor; ctx.lineWidth = 0.75; ctx.beginPath(); ctx.rect(bunker.x, bunker.y, bunker.width, bunker.height); ctx.clip(); const maxDim = Math.max(bunker.width, bunker.height) * 1.5; for (let i = -maxDim; i < maxDim; i += textureLineSpacing) { ctx.moveTo(bunker.x + i, bunker.y); ctx.lineTo(bunker.x + i + maxDim, bunker.y + maxDim); } ctx.stroke(); ctx.restore(); ctx.strokeStyle = '#5A4D35'; ctx.lineWidth = 1.5; if (bunker.shape === 'dorito') { ctx.beginPath(); ctx.moveTo(bunker.x + bunker.width / 2, bunker.y); ctx.lineTo(bunker.x + bunker.width, bunker.y + bunker.height); ctx.lineTo(bunker.x, bunker.y + bunker.height); ctx.closePath(); ctx.stroke(); } else { ctx.strokeRect(bunker.x, bunker.y, bunker.width, bunker.height); } }); }
-        function drawPlayer(player) { ctx.save(); if (!player.isEliminated) { ctx.fillStyle = `rgba(0, 0, 0, ${SHADOW_ALPHA})`; ctx.beginPath(); ctx.ellipse(player.x + SHADOW_OFFSET_X, player.y + SHADOW_OFFSET_Y, PLAYER_SPRITE_WIDTH * 0.5, PLAYER_SPRITE_WIDTH * 0.25, 0, 0, Math.PI * 2); ctx.fill(); } ctx.globalAlpha = player.isEliminated ? 0.4 : 1.0; let currentFillColor = player.color; const now = Date.now(); if (player.isHit) { if (now - player.hitTimestamp < PLAYER_HIT_FLASH_DURATION) { currentFillColor = '#FFFFFF'; } else { player.isHit = false; } } ctx.translate(player.x, player.y); ctx.rotate(player.facingAngle); let bobOffset = 0; if (player.isMoving && !player.isEliminated) { const animationCycle = Math.sin((globalAnimationFrameCounter + team1Players.indexOf(player) * 5 + team2Players.indexOf(player) * 5) / PLAYER_ANIMATION_SPEED); bobOffset = animationCycle * 1.5; } ctx.translate(0, bobOffset); ctx.fillStyle = currentFillColor; ctx.fillRect(-PLAYER_SPRITE_WIDTH / 2, -PLAYER_SPRITE_HEIGHT / 2, PLAYER_SPRITE_WIDTH, PLAYER_SPRITE_HEIGHT); ctx.fillStyle = '#555'; ctx.fillRect(PLAYER_SPRITE_WIDTH * 0.3, -PLAYER_MARKER_WIDTH / 2, PLAYER_MARKER_LENGTH, PLAYER_MARKER_WIDTH); if (player.outlineColor && !player.isEliminated) { ctx.strokeStyle = player.outlineColor; ctx.lineWidth = 2; ctx.strokeRect(-PLAYER_SPRITE_WIDTH / 2, -PLAYER_SPRITE_HEIGHT / 2, PLAYER_SPRITE_WIDTH, PLAYER_SPRITE_HEIGHT); ctx.strokeRect(PLAYER_SPRITE_WIDTH * 0.3, -PLAYER_MARKER_WIDTH / 2, PLAYER_MARKER_LENGTH, PLAYER_MARKER_WIDTH); } ctx.rotate(-player.facingAngle); ctx.translate(0, -bobOffset); if (player.isEliminated && player.eliminationTimestamp && Date.now() - player.eliminationTimestamp < ELIMINATION_CUE_DURATION) { ctx.strokeStyle = 'red'; ctx.lineWidth = 3; ctx.lineCap = 'butt'; const xSize = PLAYER_SPRITE_WIDTH * 0.6; ctx.beginPath(); ctx.moveTo(-xSize, -xSize); ctx.lineTo(xSize, xSize); ctx.stroke(); ctx.beginPath(); ctx.moveTo(xSize, -xSize); ctx.lineTo(-xSize, xSize); ctx.stroke(); } ctx.restore(); }
-        function drawPaintballs() { paintballs.forEach(paintball => { ctx.beginPath(); ctx.arc(paintball.x, paintball.y, paintball.radius, 0, Math.PI * 2); const gradient = ctx.createRadialGradient( paintball.x, paintball.y, paintball.radius * 0.1, paintball.x, paintball.y, paintball.radius ); gradient.addColorStop(0, 'rgba(255, 255, 255, 0.3)'); gradient.addColorStop(1, paintball.color); ctx.fillStyle = gradient; ctx.fill(); }); }
-        function drawSplats() { const now = Date.now(); splats.forEach(splat => { const age = now - splat.creationTime; const alpha = 1.0 - Math.min(1.0, age / splat.duration); if (alpha <= 0) return; ctx.save(); ctx.globalAlpha = alpha * 0.8; ctx.fillStyle = splat.color; ctx.beginPath(); ctx.moveTo(splat.x + splat.radius, splat.y); const points = 8; let prevX = splat.x + splat.radius; let prevY = splat.y; for (let i = 1; i <= points; i++) { const angle = (i / points) * Math.PI * 2; const randomOffset = splat.radius * (0.7 + Math.random() * 0.6); const px = splat.x + Math.cos(angle) * randomOffset; const py = splat.y + Math.sin(angle) * randomOffset; const midX = (prevX + px) / 2; const midY = (prevY + py) / 2; ctx.quadraticCurveTo(prevX, prevY, midX, midY); prevX = px; prevY = py; } ctx.closePath(); ctx.fill(); ctx.restore(); }); }
-        function drawMuzzleFlashes() { const now = Date.now(); muzzleFlashes.forEach(flash => { const age = now - flash.creationTime; const alpha = 1.0 - Math.min(1.0, age / flash.duration); if (alpha <= 0) return; ctx.save(); ctx.globalAlpha = alpha; ctx.fillStyle = flash.color; ctx.strokeStyle = 'white'; ctx.lineWidth = 1; const spikes = 5; const outerRadius = flash.radius * (1 + alpha); const innerRadius = outerRadius * 0.5; ctx.beginPath(); ctx.moveTo(flash.x, flash.y - outerRadius); for (let i = 0; i < spikes; i++) { let rot = Math.PI / spikes; ctx.lineTo(flash.x + Math.cos(rot * (i*2+1)) * outerRadius, flash.y + Math.sin(rot * (i*2+1)) * outerRadius); ctx.lineTo(flash.x + Math.cos(rot * (i*2+2)) * innerRadius, flash.y + Math.sin(rot * (i*2+2)) * innerRadius); } ctx.closePath(); ctx.fill(); ctx.stroke(); ctx.restore(); }); }
-        function drawParticles() { const now = Date.now(); particles.forEach(p => { const age = now - p.creationTime; const alpha = 1.0 - Math.min(1.0, age / p.duration); if (alpha <= 0) return; ctx.save(); ctx.globalAlpha = alpha; ctx.fillStyle = p.color; ctx.beginPath(); ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2); ctx.fill(); ctx.restore(); }); }
-        function drawPaintballTrails() { const now = Date.now(); paintballTrails.forEach(trail => { const age = now - trail.creationTime; const alpha = 0.5 * (1.0 - Math.min(1.0, age / trail.duration)); if (alpha <= 0) return; ctx.save(); ctx.globalAlpha = alpha; ctx.fillStyle = trail.color; ctx.beginPath(); ctx.arc(trail.x, trail.y, trail.radius, 0, Math.PI * 2); ctx.fill(); ctx.restore(); }); }
+        // Pixelated Bunkers
+        function drawBunkers() {
+            const outlineColor = '#000'; // Black outline
+            bunkers.forEach(bunker => {
+                ctx.fillStyle = '#A08C61'; // Solid bunker color
+                ctx.strokeStyle = outlineColor;
+                ctx.lineWidth = 2; // Thicker outline
 
-        // NEW: Draw Mini Map
+                ctx.beginPath();
+                if (bunker.shape === 'dorito') {
+                    ctx.moveTo(Math.floor(bunker.x + bunker.width / 2), Math.floor(bunker.y));
+                    ctx.lineTo(Math.floor(bunker.x + bunker.width), Math.floor(bunker.y + bunker.height));
+                    ctx.lineTo(Math.floor(bunker.x), Math.floor(bunker.y + bunker.height));
+                    ctx.closePath();
+                } else {
+                    // Use fillRect and strokeRect for sharp corners
+                    ctx.fillRect(Math.floor(bunker.x), Math.floor(bunker.y), Math.floor(bunker.width), Math.floor(bunker.height));
+                    ctx.strokeRect(Math.floor(bunker.x), Math.floor(bunker.y), Math.floor(bunker.width), Math.floor(bunker.height));
+                    return; // Skip path fill/stroke for rects
+                }
+                ctx.fill();
+                ctx.stroke();
+            });
+        }
+        // Pixelated Player
+        function drawPlayer(player) {
+            ctx.save();
+
+            // Simple block shadow
+            if (!player.isEliminated) {
+                ctx.fillStyle = `rgba(0, 0, 0, ${SHADOW_ALPHA})`;
+                ctx.fillRect(
+                    Math.floor(player.x + SHADOW_OFFSET_X - PLAYER_SPRITE_WIDTH / 2),
+                    Math.floor(player.y + SHADOW_OFFSET_Y - PLAYER_SPRITE_HEIGHT / 2),
+                    Math.floor(PLAYER_SPRITE_WIDTH),
+                    Math.floor(PLAYER_SPRITE_HEIGHT)
+                );
+            }
+
+            ctx.globalAlpha = player.isEliminated ? 0.4 : 1.0;
+
+            // Hit flash
+            let currentFillColor = player.color;
+            const now = Date.now();
+            if (player.isHit && now - player.hitTimestamp < PLAYER_HIT_FLASH_DURATION) {
+                currentFillColor = '#FFFFFF';
+            } else {
+                player.isHit = false;
+            }
+
+            // Transformations (keep rotation for facing)
+            ctx.translate(Math.floor(player.x), Math.floor(player.y));
+            ctx.rotate(player.facingAngle);
+            // No bobbing in pixel style
+            // let bobOffset = 0; if (player.isMoving && !player.isEliminated) { ... } ctx.translate(0, bobOffset);
+
+            // Draw player body (rectangle)
+            ctx.fillStyle = currentFillColor;
+            ctx.fillRect(
+                Math.floor(-PLAYER_SPRITE_WIDTH / 2),
+                Math.floor(-PLAYER_SPRITE_HEIGHT / 2),
+                Math.floor(PLAYER_SPRITE_WIDTH),
+                Math.floor(PLAYER_SPRITE_HEIGHT)
+            );
+
+            // Draw marker/gun (rectangle)
+            ctx.fillStyle = '#555';
+            ctx.fillRect(
+                Math.floor(PLAYER_SPRITE_WIDTH * 0.3),
+                Math.floor(-PLAYER_MARKER_WIDTH / 2),
+                Math.floor(PLAYER_MARKER_LENGTH),
+                Math.floor(PLAYER_MARKER_WIDTH)
+            );
+
+            // Draw outline
+            if (player.outlineColor && !player.isEliminated) {
+                ctx.strokeStyle = player.outlineColor;
+                ctx.lineWidth = 1; // Thinner outline
+                ctx.strokeRect(
+                    Math.floor(-PLAYER_SPRITE_WIDTH / 2),
+                    Math.floor(-PLAYER_SPRITE_HEIGHT / 2),
+                    Math.floor(PLAYER_SPRITE_WIDTH),
+                    Math.floor(PLAYER_SPRITE_HEIGHT)
+                );
+                ctx.strokeRect(
+                    Math.floor(PLAYER_SPRITE_WIDTH * 0.3),
+                    Math.floor(-PLAYER_MARKER_WIDTH / 2),
+                    Math.floor(PLAYER_MARKER_LENGTH),
+                    Math.floor(PLAYER_MARKER_WIDTH)
+                );
+            }
+
+            // Undo transformations
+            ctx.rotate(-player.facingAngle);
+            // ctx.translate(0, -bobOffset); // No bobbing
+            ctx.translate(-Math.floor(player.x), -Math.floor(player.y)); // Undo translate
+
+            // Draw elimination 'X'
+            if (player.isEliminated && player.eliminationTimestamp && Date.now() - player.eliminationTimestamp < ELIMINATION_CUE_DURATION) {
+                 ctx.strokeStyle = 'red';
+                 ctx.lineWidth = 2;
+                 const xSize = PLAYER_SPRITE_WIDTH * 0.6;
+                 const pX = Math.floor(player.x); // Use floored coords for X
+                 const pY = Math.floor(player.y);
+                 ctx.beginPath();
+                 ctx.moveTo(pX - xSize, pY - xSize); ctx.lineTo(pX + xSize, pY + xSize);
+                 ctx.stroke();
+                 ctx.beginPath();
+                 ctx.moveTo(pX + xSize, pY - xSize); ctx.lineTo(pX - xSize, pY + xSize);
+                 ctx.stroke();
+            }
+
+            ctx.restore();
+        }
+        // Pixelated Paintballs
+        function drawPaintballs() {
+            paintballs.forEach(paintball => {
+                ctx.fillStyle = paintball.color;
+                ctx.fillRect(
+                    Math.floor(paintball.x - PAINTBALL_RADIUS),
+                    Math.floor(paintball.y - PAINTBALL_RADIUS),
+                    Math.floor(PAINTBALL_RADIUS * 2),
+                    Math.floor(PAINTBALL_RADIUS * 2)
+                );
+            });
+        }
+        // Pixelated Splats
+        function drawSplats() {
+            const now = Date.now();
+            splats.forEach(splat => {
+                const age = now - splat.creationTime;
+                const alpha = 1.0 - Math.min(1.0, age / splat.duration);
+                if (alpha <= 0) return;
+
+                ctx.save();
+                ctx.globalAlpha = alpha * 0.8;
+                ctx.fillStyle = splat.color;
+                // Draw the square
+                ctx.fillRect(splat.x, splat.y, splat.size, splat.size);
+                ctx.restore();
+            });
+        }
+        // Pixelated Muzzle Flash
+        function drawMuzzleFlashes() {
+            const now = Date.now();
+            muzzleFlashes.forEach(flash => {
+                const age = now - flash.creationTime;
+                const alpha = 1.0 - Math.min(1.0, age / flash.duration);
+                if (alpha <= 0) return;
+
+                ctx.save();
+                ctx.globalAlpha = alpha;
+                // Alternate yellow/white flash
+                ctx.fillStyle = (Math.floor(now / 40) % 2 === 0) ? '#FFFF00' : '#FFFFFF';
+                const currentSize = Math.floor(flash.size * (1 + alpha * 0.5)); // Expand slightly
+                ctx.fillRect(
+                    Math.floor(flash.x - currentSize / 2),
+                    Math.floor(flash.y - currentSize / 2),
+                    currentSize,
+                    currentSize
+                );
+                ctx.restore();
+            });
+        }
+        // Pixelated Particles
+        function drawParticles() {
+            const now = Date.now();
+            particles.forEach(p => {
+                const age = now - p.creationTime;
+                const alpha = 1.0 - Math.min(1.0, age / p.duration);
+                if (alpha <= 0) return;
+
+                ctx.save();
+                ctx.globalAlpha = alpha;
+                ctx.fillStyle = p.color;
+                ctx.fillRect(Math.floor(p.x - p.size / 2), Math.floor(p.y - p.size / 2), p.size, p.size);
+                ctx.restore();
+            });
+        }
+        // Pixelated Trails
+        function drawPaintballTrails() {
+            const now = Date.now();
+            paintballTrails.forEach(trail => {
+                const age = now - trail.creationTime;
+                const alpha = 0.4 * (1.0 - Math.min(1.0, age / trail.duration)); // Fainter trail
+                if (alpha <= 0) return;
+
+                ctx.save();
+                ctx.globalAlpha = alpha;
+                ctx.fillStyle = trail.color;
+                ctx.fillRect(Math.floor(trail.x - trail.size / 2), Math.floor(trail.y - trail.size / 2), trail.size, trail.size);
+                ctx.restore();
+            });
+        }
+
+        // Draw Mini Map (already uses simple shapes, should look okay)
         function drawMiniMap(mapValue, canvasId, width, height) {
             const previewCanvas = document.getElementById(canvasId);
             if (!previewCanvas) return;
             const miniCtx = previewCanvas.getContext('2d');
+            // Ensure pixelated rendering for mini-map too
+            miniCtx.imageSmoothingEnabled = false;
+            miniCtx.webkitImageSmoothingEnabled = false;
+            miniCtx.mozImageSmoothingEnabled = false;
+
             miniCtx.clearRect(0, 0, width, height);
             miniCtx.fillStyle = '#2F4F2F'; // Match game background
             miniCtx.fillRect(0, 0, width, height);
@@ -1054,21 +1279,22 @@
 
             // Draw simplified bunkers
             miniCtx.fillStyle = '#A08C61'; // Simple bunker color
-            miniCtx.strokeStyle = '#5A4D35'; // Simple outline
-            miniCtx.lineWidth = 0.5; // Thin outline
+            miniCtx.strokeStyle = '#000'; // Black outline
+            miniCtx.lineWidth = 1; // Slightly thicker outline for mini map
 
             miniBunkers.forEach(bunker => {
                 miniCtx.beginPath();
                 if (bunker.shape === 'dorito') {
-                    miniCtx.moveTo(bunker.x + bunker.width / 2, bunker.y);
-                    miniCtx.lineTo(bunker.x + bunker.width, bunker.y + bunker.height);
-                    miniCtx.lineTo(bunker.x, bunker.y + bunker.height);
+                    miniCtx.moveTo(Math.floor(bunker.x + bunker.width / 2), Math.floor(bunker.y));
+                    miniCtx.lineTo(Math.floor(bunker.x + bunker.width), Math.floor(bunker.y + bunker.height));
+                    miniCtx.lineTo(Math.floor(bunker.x), Math.floor(bunker.y + bunker.height));
                     miniCtx.closePath();
+                    miniCtx.fill();
+                    miniCtx.stroke();
                 } else {
-                    miniCtx.rect(bunker.x, bunker.y, bunker.width, bunker.height);
+                    miniCtx.fillRect(Math.floor(bunker.x), Math.floor(bunker.y), Math.floor(bunker.width), Math.floor(bunker.height));
+                     miniCtx.strokeRect(Math.floor(bunker.x), Math.floor(bunker.y), Math.floor(bunker.width), Math.floor(bunker.height));
                 }
-                miniCtx.fill();
-                miniCtx.stroke();
             });
         }
 
