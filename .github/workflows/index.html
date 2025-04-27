@@ -1,0 +1,1038 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>X-Ball Paintball Game - Added World Cup Layout</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
+    <style>
+        /* Base body styles */
+        body {
+            font-family: 'Press Start 2P', cursive;
+            overflow: hidden; /* Prevent scrollbars */
+            background-color: #1a202c; /* Dark background */
+            color: #e2e8f0; /* Light text */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 0;
+            position: relative; /* Needed for absolute positioning of menu/message box */
+        }
+        /* Canvas styles */
+        canvas {
+            display: block; /* Remove extra space below canvas */
+            background-color: #2F4F2F; /* Dark Sea Green like color */
+            border: 4px solid #4a5568; /* Medium gray border */
+            border-radius: 8px; /* Rounded corners */
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.5); /* Outer shadow */
+            max-width: 100%; /* Ensure canvas doesn't overflow container */
+            max-height: 85vh; /* Limit canvas height relative to viewport */
+            aspect-ratio: 16 / 9; /* Maintain widescreen aspect ratio */
+            cursor: crosshair; /* Indicate interaction area */
+        }
+        /* Container for game elements (canvas and UI panels) */
+        .game-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.5rem; /* Space between UI panels and canvas */
+            padding: 1rem; /* Padding around the game area */
+            width: 95%; /* Use most of the width */
+            max-width: 1200px; /* Limit maximum width */
+            visibility: hidden; /* Hide game container initially */
+        }
+        .game-container.active {
+             visibility: visible; /* Show when game starts */
+        }
+
+        /* --- UI Polish Starts --- */
+
+        /* Top panel styles (scores, timer) */
+        .top-panel {
+            display: flex;
+            justify-content: space-between; /* Space out elements */
+            align-items: center;
+            width: 100%;
+            max-width: 1200px; /* Match canvas max width */
+            padding: 0.5rem 1rem;
+            margin-bottom: 0.5rem; /* Space below top panel */
+            flex-wrap: wrap; /* Allow wrapping on smaller screens */
+            gap: 1rem; /* Space between wrapped items */
+            background-color: rgba(45, 55, 72, 0.5); /* Semi-transparent background */
+            border: 2px solid #4a5568; /* Border */
+            border-radius: 6px; /* Rounded corners */
+        }
+        /* Team score container */
+        .team-scores {
+            display: flex;
+            justify-content: center;
+            gap: 2rem; /* Space between team scores */
+            font-size: 1.1rem;
+            font-weight: bold;
+            order: 1; /* Position on the left */
+            font-family: 'Press Start 2P', cursive; /* Ensure font */
+        }
+        /* Game stats container (timer, overall score) */
+        .game-stats {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            order: 2; /* Position in the center */
+            font-family: 'Press Start 2P', cursive; /* Ensure font */
+        }
+        /* Timer display style */
+        .timer {
+            font-size: 1.2rem;
+            color: #fbd38d; /* Orange-yellow timer */
+        }
+        /* Overall score display style (round, wins) */
+        .overall-score {
+            font-size: 0.7rem;
+            color: #a0aec0; /* Lighter gray */
+            margin-top: 0.25rem;
+            text-align: center;
+        }
+        /* Score colors are set dynamically via JS */
+        .score-team1 {}
+        .score-team2 {}
+
+        /* Bottom panel styles (info, controls) */
+        .bottom-panel {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            width: 100%;
+            max-width: 1200px; /* Match canvas max width */
+            padding: 0.5rem 1rem;
+            margin-top: 0.5rem; /* Space above bottom panel */
+            flex-wrap: wrap; /* Allow wrapping */
+            gap: 0.5rem;
+            background-color: rgba(45, 55, 72, 0.5); /* Semi-transparent background */
+            border: 2px solid #4a5568;
+            border-radius: 6px;
+        }
+        /* Info panel (controls text, game state) */
+        .info-panel {
+            font-size: 0.75rem;
+            color: #a0aec0;
+            text-align: left;
+            flex-grow: 1; /* Take available space */
+            font-family: 'Press Start 2P', cursive; /* Ensure font */
+            line-height: 1.4; /* Improve readability */
+        }
+         .info-panel div { /* Style individual lines within info panel */
+             margin-bottom: 0.2rem;
+         }
+        /* Controls container (buttons) */
+        .controls-container {
+            display: flex;
+            align-items: center;
+            gap: 1rem; /* Space between buttons */
+            order: 3; /* Position on the right */
+        }
+        /* Shared button base style */
+        .game-button {
+             font-family: 'Press Start 2P', cursive;
+             border: 2px solid; /* Border color set individually */
+             padding: 8px 16px;
+             font-size: 0.8rem;
+             border-radius: 6px;
+             cursor: pointer;
+             transition: background-color 0.2s ease, transform 0.1s ease, box-shadow 0.1s ease;
+             box-shadow: 0 3px 5px rgba(0,0,0,0.4); /* Button shadow */
+             white-space: nowrap; /* Prevent button text wrapping */
+             text-transform: uppercase; /* Uppercase button text */
+        }
+        /* Button pressed effect */
+        .game-button:active {
+             transform: translateY(2px); /* Move down slightly */
+             box-shadow: 0 1px 2px rgba(0,0,0,0.4); /* Reduce shadow */
+        }
+
+        /* Reset Button Specific Style */
+        .reset-button {
+             background-color: #fbd38d; color: #2d3748; border-color: #f6ad55; /* Orange/Yellow */
+        }
+        .reset-button:hover { background-color: #f6ad55; } /* Darker on hover */
+
+        /* Menu Button Specific Style */
+        .menu-button {
+             background-color: #f56565; color: #1a202c; border-color: #c53030; /* Red */
+        }
+        .menu-button:hover { background-color: #e53e3e; } /* Darker on hover */
+
+        /* Mute Button Specific Style */
+        .mute-button {
+             background-color: #a0aec0; color: #1a202c; border-color: #718096; /* Gray */
+        }
+        .mute-button:hover { background-color: #718096; } /* Darker gray on hover */
+        .mute-button.muted { /* Style when muted */
+             background-color: #4a5568; color: #a0aec0; border-color: #2d3748;
+        }
+
+
+        /* --- UI Polish Ends --- */
+
+        /* Message Box Style (for round start/end messages) */
+        .message-box {
+            position: absolute; /* Position relative to body */
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%); /* Center precisely */
+            background-color: rgba(0, 0, 0, 0.85); /* Darker, more opaque background */
+            color: white;
+            padding: 25px 45px; /* Generous padding */
+            border-radius: 10px;
+            font-size: 1.8rem; /* Large font for messages */
+            text-align: center;
+            z-index: 100; /* Ensure it's above the canvas */
+            display: none; /* Hidden by default */
+            border: 3px solid #cbd5e0; /* Light border */
+            box-shadow: 0 5px 15px rgba(0,0,0,0.4); /* Shadow for emphasis */
+            white-space: pre-line; /* Allow line breaks using \n */
+        }
+
+        /* Eliminated Player Style (applied via JS) */
+        .eliminated { opacity: 0.4; } /* Fade out eliminated players */
+
+        /* --- Start Menu Styles --- */
+        #startMenu {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background-image: linear-gradient(rgba(26, 32, 44, 0.85), rgba(26, 32, 44, 0.85)), url('https://i.postimg.cc/HkWh076Y/paintballlgo.png');
+            background-color: rgba(26, 32, 44, 0.95); /* Fallback color */
+            background-size: cover; /* Cover the entire area */
+            background-position: center center; /* Center the image */
+            background-repeat: no-repeat;
+            display: flex; /* Use flexbox for centering */
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 200; /* Ensure menu is above everything else */
+            color: #e2e8f0; /* Default text color */
+            font-family: 'Press Start 2P', cursive;
+            padding: 1rem; /* Padding inside the menu */
+            box-sizing: border-box; /* Include padding in width/height */
+            text-align: center;
+            overflow-y: auto; /* Allow scrolling if content overflows on small screens */
+        }
+        /* Menu Banner Image */
+        #startMenu img {
+            max-width: 80%; /* Limit image width */
+            max-height: 200px; /* Limit image height */
+            height: auto; /* Maintain aspect ratio */
+            margin-bottom: 1.5rem; /* Space below image */
+            border-radius: 8px;
+            border: 3px solid #4a5568; /* Border matching UI panels */
+            box-shadow: 0 4px 10px rgba(0,0,0,0.4); /* Shadow */
+        }
+        /* Menu Title */
+        #startMenu h1 {
+            font-size: 2rem;
+            margin-bottom: 0.5rem; /* Reduced margin */
+            color: #fbd38d; /* Orange title */
+            text-shadow: 2px 2px #c05621, 0 0 10px rgba(0,0,0,0.7); /* Dark orange shadow + subtle outer glow */
+        }
+        /* Container for menu options */
+        .menu-options {
+            background-color: rgba(45, 55, 72, 0.85);
+            padding: 1.5rem 2rem;
+            border-radius: 8px;
+            border: 3px solid #4a5568; /* Border matching UI */
+            box-shadow: 0 4px 10px rgba(0,0,0,0.4);
+            display: flex;
+            flex-direction: column;
+            gap: 1rem; /* Space between option rows/groups */
+            align-items: center;
+            width: 90%; /* Relative width */
+            max-width: 650px; /* Increased max width for controls */
+            margin-bottom: 1rem; /* Reduced margin */
+        }
+        /* Row container for options (allows wrapping) */
+        .option-row {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 1rem 1.5rem; /* Row and column gap */
+            width: 100%;
+        }
+        /* Grouping for label and input/select */
+        .option-group {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.5rem; /* Space between label and input */
+            width: auto; /* Allow natural width */
+        }
+        /* Option labels */
+        .option-group label {
+            font-size: 0.8rem;
+            color: #a0aec0; /* Lighter gray label */
+            white-space: nowrap; /* Prevent label wrapping */
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.5); /* Add shadow for readability */
+        }
+        /* Input fields (number) and select dropdowns */
+        .option-group input[type="number"], .option-group select {
+            font-family: 'Press Start 2P', cursive; /* Use game font */
+            font-size: 0.9rem;
+            padding: 8px 10px;
+            background-color: #1a202c; /* Dark background for inputs */
+            border: 2px solid #4a5568; /* Medium gray border */
+            color: #e2e8f0; /* Light text */
+            border-radius: 4px;
+            text-align: center; /* Center text in inputs */
+        }
+        /* Style number inputs */
+        .option-group input[type="number"] {
+            width: 70px; /* Fixed width for number inputs */
+            -moz-appearance: textfield; /* Hide spinners in Firefox */
+        }
+        /* Hide spin buttons in Chrome, Safari, Edge, Opera */
+        .option-group input[type="number"]::-webkit-outer-spin-button,
+        .option-group input[type="number"]::-webkit-inner-spin-button {
+            -webkit-appearance: none; margin: 0;
+        }
+        /* Style select dropdowns */
+        .option-group select {
+            width: 200px; /* Fixed width for dropdowns */
+            text-align-last: center; /* Center selected option text */
+            cursor: pointer;
+        }
+        /* Style options within the select dropdown */
+        .option-group select option {
+            background-color: #2d3748; /* Match dropdown background */
+            color: #e2e8f0; /* Match dropdown text color */
+            font-size: 0.8rem; /* Slightly smaller font for options */
+        }
+        /* Style for Game Mode Radio Buttons */
+        .game-mode-options {
+            display: flex;
+            gap: 1.5rem;
+            margin-top: 0.5rem; /* Add some space above game mode */
+        }
+        .game-mode-options label {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.9rem;
+            cursor: pointer;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.5); /* Add shadow for readability */
+        }
+        .game-mode-options input[type="radio"] {
+            cursor: pointer;
+             /* Optional: Basic styling for radio button */
+             appearance: none;
+             background-color: #1a202c;
+             border: 2px solid #4a5568;
+             width: 1em;
+             height: 1em;
+             border-radius: 50%;
+             display: grid;
+             place-content: center;
+        }
+         .game-mode-options input[type="radio"]::before {
+             content: "";
+             width: 0.5em;
+             height: 0.5em;
+             border-radius: 50%;
+             transform: scale(0);
+             transition: 120ms transform ease-in-out;
+             background-color: #fbd38d;
+         }
+         .game-mode-options input[type="radio"]:checked::before {
+             transform: scale(1);
+         }
+
+        /* Styles for Controls Section */
+        .controls-section {
+            margin-top: 1.5rem;
+            border-top: 2px dashed #4a5568;
+            padding-top: 1.5rem;
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 1rem;
+        }
+        .controls-title {
+            font-size: 1rem;
+            color: #fbd38d;
+            margin-bottom: 0.5rem;
+        }
+        .controls-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); /* Responsive grid */
+            gap: 1rem;
+            width: 100%;
+            max-width: 600px; /* Limit grid width */
+        }
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.5rem;
+            background-color: rgba(26, 32, 44, 0.6);
+            padding: 0.75rem;
+            border-radius: 6px;
+            border: 1px solid #4a5568;
+        }
+        .control-row {
+            display: flex;
+            justify-content: space-between; /* Align items in the row */
+            align-items: center;
+            width: 100%;
+            gap: 0.5rem;
+        }
+        .control-label {
+            font-size: 0.75rem;
+            color: #a0aec0;
+            text-align: left;
+            flex-grow: 1; /* Allow label to take space */
+        }
+        .control-key-display {
+            font-size: 0.8rem;
+            background-color: #1a202c;
+            color: #fbd38d; /* Highlight key */
+            padding: 4px 8px;
+            border: 1px solid #4a5568;
+            border-radius: 4px;
+            min-width: 60px; /* Ensure minimum width */
+            text-align: center;
+        }
+        .control-key-display.rebinding { /* Style when waiting for input */
+            color: #f56565;
+            font-style: italic;
+        }
+        .change-key-button {
+            font-family: 'Press Start 2P', cursive;
+            font-size: 0.65rem;
+            padding: 4px 8px;
+            background-color: #4a5568;
+            color: #e2e8f0;
+            border: 1px solid #718096;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+            text-transform: none; /* Override uppercase */
+        }
+        .change-key-button:hover {
+            background-color: #718096;
+        }
+        .change-key-button:disabled { /* Style when rebinding */
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+
+        /* Start Match Button */
+        #startButton {
+            font-family: 'Press Start 2P', cursive;
+            background-color: #68d391; /* Green */
+            color: #1a202c; /* Dark text */
+            border: 2px solid #38a169; /* Darker green border */
+            padding: 10px 20px;
+            font-size: 1rem;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: background-color 0.2s ease, transform 0.1s ease;
+            box-shadow: 0 3px 6px rgba(0,0,0,0.3);
+            margin-top: 1rem; /* Space above button */
+            text-transform: uppercase;
+        }
+        #startButton:hover { background-color: #48bb78; } /* Darker green on hover */
+        #startButton:active { transform: translateY(1px); box-shadow: 0 2px 4px rgba(0,0,0,0.3); } /* Press effect */
+
+        /* UPDATED Creator Credit Style */
+        .creator-credit {
+            /* Removed absolute positioning */
+            font-size: 0.65rem; /* Small font size */
+            color: #718096; /* Gray color */
+            opacity: 0.8; /* Slightly faded */
+            text-shadow: 1px 1px 1px rgba(0,0,0,0.7); /* Add shadow for readability */
+            margin-top: 0.25rem; /* Add small margin below title */
+            margin-bottom: 1rem; /* Add margin before next options */
+            text-align: center; /* Ensure centered */
+        }
+
+    </style>
+</head>
+<body class="bg-gray-900 text-gray-200 flex items-center justify-center min-h-screen">
+
+    <div id="startMenu">
+         <img src="https://i.postimg.cc/HkWh076Y/paintballlgo.png"
+              alt="Paintball Game Logo"
+              onerror="this.onerror=null; this.src='https://placehold.co/600x200/2d3748/e2e8f0?text=X-Ball+Logo';">
+
+         <div class="menu-options">
+             <h1>X-Ball</h1>
+             <p class="creator-credit">Created by Max Prebeg - Graphics Upgraded by AI</p>
+
+             <div class="option-row">
+                 <div class="option-group">
+                     <label for="playerCountInput">Players/Team:</label>
+                     <input type="number" id="playerCountInput" value="5" min="1" max="10">
+                 </div>
+                 <div class="option-group">
+                     <label for="timeLimitInput">Time (sec):</label>
+                     <input type="number" id="timeLimitInput" value="60" min="10" max="300">
+                 </div>
+                 <div class="option-group">
+                     <label for="roundsInput">Rounds:</label>
+                     <input type="number" id="roundsInput" value="3" min="1" max="15">
+                 </div>
+             </div>
+             <div class="option-group">
+                 <label for="mapLayoutInput">Map Layout:</label>
+                 <select id="mapLayoutInput">
+                     <option value="nxl_2023" selected>NXL 2023</option>
+                     <option value="nxl_2020">NXL 2020</option>
+                     <option value="nxl_world_cup">NXL World Cup</option>
+                 </select>
+             </div>
+             <div class="option-group game-mode-options">
+                 <label>
+                     <input type="radio" name="gameMode" value="1P" checked> 1P vs AI
+                 </label>
+                 <label>
+                     <input type="radio" name="gameMode" value="2P"> 2P Local
+                 </label>
+             </div>
+             <div class="option-row">
+                 <div class="option-group">
+                     <label for="userTeamSelect">P1 Team:</label> <select id="userTeamSelect"></select>
+                 </div>
+                 <div class="option-group">
+                     <label for="opponentTeamSelect">P2/AI Team:</label> <select id="opponentTeamSelect"></select>
+                 </div>
+             </div>
+
+             <div class="controls-section">
+                 <h2 class="controls-title">Controls</h2>
+                 <div class="controls-grid">
+                     <div class="control-group">
+                         <h3>Player 1</h3>
+                         <div class="control-row">
+                             <span class="control-label">Up:</span>
+                             <span class="control-key-display" id="p1-up-key">W</span>
+                             <button class="change-key-button" data-action="p1Up">Change</button>
+                         </div>
+                         <div class="control-row">
+                             <span class="control-label">Down:</span>
+                             <span class="control-key-display" id="p1-down-key">S</span>
+                             <button class="change-key-button" data-action="p1Down">Change</button>
+                         </div>
+                         <div class="control-row">
+                             <span class="control-label">Left:</span>
+                             <span class="control-key-display" id="p1-left-key">A</span>
+                             <button class="change-key-button" data-action="p1Left">Change</button>
+                         </div>
+                         <div class="control-row">
+                             <span class="control-label">Right:</span>
+                             <span class="control-key-display" id="p1-right-key">D</span>
+                             <button class="change-key-button" data-action="p1Right">Change</button>
+                         </div>
+                         <div class="control-row">
+                             <span class="control-label">Shoot:</span>
+                             <span class="control-key-display">Mouse/Tap</span>
+                             </div>
+                     </div>
+                     <div class="control-group">
+                         <h3>Player 2</h3>
+                         <div class="control-row">
+                             <span class="control-label">Up:</span>
+                             <span class="control-key-display" id="p2-up-key">ArrowUp</span>
+                             <button class="change-key-button" data-action="p2Up">Change</button>
+                         </div>
+                         <div class="control-row">
+                             <span class="control-label">Down:</span>
+                             <span class="control-key-display" id="p2-down-key">ArrowDown</span>
+                             <button class="change-key-button" data-action="p2Down">Change</button>
+                         </div>
+                         <div class="control-row">
+                             <span class="control-label">Left:</span>
+                             <span class="control-key-display" id="p2-left-key">ArrowLeft</span>
+                             <button class="change-key-button" data-action="p2Left">Change</button>
+                         </div>
+                         <div class="control-row">
+                             <span class="control-label">Right:</span>
+                             <span class="control-key-display" id="p2-right-key">ArrowRight</span>
+                             <button class="change-key-button" data-action="p2Right">Change</button>
+                         </div>
+                         <div class="control-row">
+                             <span class="control-label">Shoot:</span>
+                             <span class="control-key-display" id="p2-shoot-key">Enter</span>
+                             <button class="change-key-button" data-action="p2Shoot">Change</button>
+                         </div>
+                     </div>
+                 </div>
+                 <button id="resetControlsButton" class="game-button reset-button" style="font-size: 0.7rem; padding: 6px 10px; margin-top: 0.5rem;">Reset Controls</button>
+             </div>
+             <button id="startButton">Start Match</button>
+         </div>
+         </div>
+
+    <div class="game-container">
+        <div class="top-panel">
+            <div class="team-scores">
+                 <div id="scoreTeam1" class="score-team1">Team1: 0</div>
+                 <div id="scoreTeam2" class="score-team2">Team2: 0</div>
+            </div>
+            <div class="game-stats">
+                 <div id="timerDisplay" class="timer">Time: 0</div>
+                 <div id="overallScoreDisplay" class="overall-score">Round: 1 / 3 | Wins: Team1 0 - Team2 0</div>
+            </div>
+            <div style="order: 3; flex-basis: 100px; visibility: hidden;"></div>
+       </div>
+
+        <canvas id="gameCanvas"></canvas>
+
+        <div class="bottom-panel">
+             <div class="info-panel" id="infoPanel">
+                 <div id="p1ControlsInfo">P1: WASD + Click</div>
+                 <div id="p2ControlsInfo" style="display: none;">P2: Arrows + Enter</div>
+                 <div id="gameState">Game State: Ready</div>
+             </div>
+             <div class="controls-container">
+                 <button id="muteButton" class="game-button mute-button">Mute</button>
+                 <button id="resetButton" class="game-button reset-button">Reset Round</button>
+                 <button id="menuButton" class="game-button menu-button">Main Menu</button>
+             </div>
+        </div>
+
+        <div id="messageBox" class="message-box"></div>
+    </div>
+
+    <script>
+        // --- Canvas and DOM Element Setup ---
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const scoreTeam1Element = document.getElementById('scoreTeam1');
+        const scoreTeam2Element = document.getElementById('scoreTeam2');
+        const gameStateElement = document.getElementById('gameState');
+        const timerDisplayElement = document.getElementById('timerDisplay');
+        const overallScoreDisplayElement = document.getElementById('overallScoreDisplay');
+        const resetButton = document.getElementById('resetButton');
+        const menuButton = document.getElementById('menuButton');
+        const messageBox = document.getElementById('messageBox');
+        const gameContainer = document.querySelector('.game-container');
+        const muteButton = document.getElementById('muteButton');
+        const infoPanel = document.getElementById('infoPanel');
+        const p1ControlsInfo = document.getElementById('p1ControlsInfo');
+        const p2ControlsInfo = document.getElementById('p2ControlsInfo');
+        const controlsSection = document.querySelector('.controls-section');
+        const resetControlsButton = document.getElementById('resetControlsButton');
+
+
+        // --- Menu Elements ---
+        const startMenu = document.getElementById('startMenu');
+        const playerCountInput = document.getElementById('playerCountInput');
+        const timeLimitInput = document.getElementById('timeLimitInput');
+        const mapLayoutInput = document.getElementById('mapLayoutInput');
+        const userTeamSelect = document.getElementById('userTeamSelect');
+        const opponentTeamSelect = document.getElementById('opponentTeamSelect');
+        const roundsInput = document.getElementById('roundsInput');
+        const startButton = document.getElementById('startButton');
+
+        // --- Tone.js Sound Setup ---
+        let soundsReady = false;
+        let synths = {};
+        let isMuted = false;
+
+        function setupSounds() { /* ... same sound setup ... */ if (soundsReady) return; try { synths.shoot = new Tone.NoiseSynth({ noise: { type: 'white' }, envelope: { attack: 0.001, decay: 0.05, sustain: 0, release: 0.05 } }).toDestination(); synths.shoot.volume.value = -15; synths.hitPlayer = new Tone.Synth({ oscillator: { type: 'sine' }, envelope: { attack: 0.01, decay: 0.1, sustain: 0.1, release: 0.2 } }).toDestination(); synths.hitPlayer.volume.value = -10; synths.hitBunker = new Tone.MembraneSynth({ pitchDecay: 0.01, octaves: 2, envelope: { attack: 0.001, decay: 0.1, sustain: 0, release: 0.1 } }).toDestination(); synths.hitBunker.volume.value = -8; synths.win = new Tone.Synth({ oscillator: { type: 'triangle' }, envelope: { attack: 0.05, decay: 0.2, sustain: 0.3, release: 0.5 } }).toDestination(); synths.win.volume.value = -5; synths.lose = new Tone.Synth({ oscillator: { type: 'sawtooth' }, envelope: { attack: 0.1, decay: 0.5, sustain: 0.1, release: 0.5 } }).toDestination(); synths.lose.volume.value = -5; synths.start = new Tone.Synth({ oscillator: { type: 'square' }, envelope: { attack: 0.01, decay: 0.1, sustain: 0, release: 0.1 } }).toDestination(); synths.start.volume.value = -10; console.log("Tone.js sounds initialized."); soundsReady = true; Tone.Destination.mute = isMuted; } catch (error) { console.error("Error initializing Tone.js:", error); } }
+        function playSound(synthName, note = null, duration = null, time = '+0') { /* ... same sound playing ... */ if (isMuted || !soundsReady || !synths[synthName]) return; try { if (note && duration) { synths[synthName].triggerAttackRelease(note, duration, time); } else if (note) { synths[synthName].triggerAttack(note, time); } else { synths[synthName].triggerAttackRelease(duration || '8n', time); } } catch (error) { console.error(`Error playing sound ${synthName}:`, error); } }
+
+        // --- Team Data ---
+        const teams = [ /* ... same team data ... */ { id: 'dynasty', name: 'Dynasty', color: 'hsl(230, 70%, 60%)' }, { id: 'heat', name: 'Heat', color: 'hsl(0, 80%, 55%)' }, { id: 'aftershock', name: 'Aftershock', color: 'hsl(210, 5%, 40%)' }, { id: 'acdallas', name: 'ac DALLAS', color: 'hsl(210, 10%, 75%)' }, { id: 'damage', name: 'Damage', color: 'hsl(0, 45%, 40%)' }, { id: 'impact', name: 'Impact', color: 'hsl(120, 60%, 30%)' }, { id: 'upton', name: 'Upton 187', color: 'hsl(275, 80%, 60%)' }, { id: 'xfactor', name: 'X-Factor', color: 'hsl(60, 100%, 55%)' } ];
+
+        // --- Global Game State ---
+        let team1Score = 0; let team2Score = 0;
+        let team1GamesWon = 0; let team2GamesWon = 0;
+        let gameActive = false;
+        let animationFrameId = null;
+        let timerIntervalId = null;
+        let timeRemaining;
+        let currentRoundNumber = 1;
+        let globalAnimationFrameCounter = 0;
+        let selectedGameMode = '1P'; // Default to 1 Player
+        let isRebinding = false;
+        let actionToRebind = null;
+        let temporaryKeyListener = null;
+
+
+        // --- Selected Game Options ---
+        let selectedPlayerCount = 5; let selectedRoundTime = 60;
+        let selectedMapLayout = 'nxl_2023'; let selectedUserTeam = teams[0];
+        let selectedOpponentTeam = teams[1]; let selectedRoundsPerMatch = 3;
+
+        // --- Game Constants ---
+        const PLAYER_RADIUS = 10; const PLAYER_SPEED = 4.0;
+        const PAINTBALL_RADIUS = 4; const PAINTBALL_SPEED = 8;
+        const AI_SHOOT_INTERVAL = 250; const AI_MOVE_INTERVAL = 1000;
+        const AI_MOVE_TARGET_RANGE = 120; const AI_VIEW_RANGE = 300;
+        const BUNKER_SIZE_MULTIPLIER = 0.8; const COLLISION_NUDGE_FACTOR = 0.6;
+        const TEAMMATE_REPULSION_DISTANCE = PLAYER_RADIUS * 5.0;
+        const TEAMMATE_REPULSION_FORCE = 0.6;
+        const FACING_INDICATOR_LENGTH = PLAYER_RADIUS * 1.2;
+        const NEXT_ROUND_DELAY = 3000;
+
+        // --- Splat Constants ---
+        const SPLAT_RADIUS_BASE = 8; const SPLAT_RADIUS_VARIANCE = 4;
+        const SPLAT_DURATION = 1500;
+
+        // --- Graphics Effect Constants ---
+        const SHADOW_OFFSET_X = 3; const SHADOW_OFFSET_Y = 5; const SHADOW_ALPHA = 0.3;
+        const MUZZLE_FLASH_DURATION = 80; const MUZZLE_FLASH_RADIUS = 8;
+        const PARTICLE_COUNT_HIT = 5; const PARTICLE_SPEED = 2;
+        const PARTICLE_DURATION = 400; const PARTICLE_RADIUS = 1.5;
+        const TRAIL_PARTICLE_DURATION = 150; const TRAIL_PARTICLE_RADIUS = 2;
+        const ELIMINATION_CUE_DURATION = 500;
+
+        // --- Sprite/Animation Constants ---
+        const PLAYER_SPRITE_WIDTH = PLAYER_RADIUS * 1.8; const PLAYER_SPRITE_HEIGHT = PLAYER_RADIUS * 1.8;
+        const PLAYER_MARKER_LENGTH = PLAYER_SPRITE_WIDTH * 0.8; const PLAYER_MARKER_WIDTH = PLAYER_SPRITE_WIDTH * 0.2;
+        const PLAYER_ANIMATION_SPEED = 8;
+
+        // --- Control Mapping Object ---
+        let controls = {
+            p1Up: 'w', p1Down: 's', p1Left: 'a', p1Right: 'd',
+            p2Up: 'ArrowUp', p2Down: 'ArrowDown', p2Left: 'ArrowLeft', p2Right: 'ArrowRight', p2Shoot: 'Enter'
+        };
+        const defaultControls = { ...controls }; // Keep a copy of defaults
+
+        // --- Game Objects ---
+        let userPlayer; // Player 1
+        let player2; // Reference to Player 2 object in 2P mode
+        const team1Players = []; const team2Players = [];
+        const paintballs = []; const bunkers = [];
+        let bunkerLookup = {};
+        const splats = [];
+        const particles = []; const muzzleFlashes = []; const paintballTrails = [];
+
+        // --- Input Handling (Keyboard) ---
+        const keyStates = {
+            p1Up: false, p1Down: false, p1Left: false, p1Right: false,
+            p2Up: false, p2Down: false, p2Left: false, p2Right: false, p2Shoot: false
+        };
+
+        function getActionForKey(key) {
+            for (const action in controls) {
+                if (controls[action].toLowerCase() === key.toLowerCase()) {
+                    return action;
+                }
+            }
+            return null;
+        }
+
+        document.addEventListener('keydown', (e) => {
+            if (isRebinding && actionToRebind) { handleRebindKeyPress(e); return; }
+            const action = getActionForKey(e.key);
+            if (action) {
+                keyStates[action] = true;
+                if (action === 'p2Shoot' && !e.repeat) { handlePlayer2Shoot(); }
+            }
+            if (!soundsReady) { Tone.start().then(setupSounds); }
+        });
+
+        document.addEventListener('keyup', (e) => {
+            if (isRebinding) return;
+            const action = getActionForKey(e.key);
+            if (action) { keyStates[action] = false; }
+        });
+
+        // --- Utility Functions ---
+        function distToSegmentSquared(x1, y1, x2, y2, px, py) { /* ... same ... */ const l2 = (x2 - x1)**2 + (y2 - y1)**2; if (l2 === 0) return (px - x1)**2 + (py - y1)**2; let t = ((px - x1) * (x2 - x1) + (py - y1) * (y2 - y1)) / l2; t = Math.max(0, Math.min(1, t)); const projX = x1 + t * (x2 - x1); const projY = y1 + t * (y2 - y1); return (px - projX)**2 + (py - projY)**2; }
+        function lineIntersectsRect(x1, y1, x2, y2, rect) { /* ... same ... */ return ( lineIntersectsLine(x1, y1, x2, y2, rect.x, rect.y, rect.x + rect.width, rect.y) || lineIntersectsLine(x1, y1, x2, y2, rect.x + rect.width, rect.y, rect.x + rect.width, rect.y + rect.height) || lineIntersectsLine(x1, y1, x2, y2, rect.x + rect.width, rect.y + rect.height, rect.x, rect.y + rect.height) || lineIntersectsLine(x1, y1, x2, y2, rect.x, rect.y + rect.height, rect.x, rect.y) ); }
+        function lineIntersectsLine(x1, y1, x2, y2, x3, y3, x4, y4) { /* ... same ... */ const den = (y4 - y3) * (x2 - x1) - (x4 - x3) * (y2 - y1); if (Math.abs(den) < 1e-6) return false; const ua_num = ((x4 - x3) * (y1 - y3) - (y4 - y3) * (x1 - x3)); const ub_num = ((x2 - x1) * (y1 - y3) - (y2 - y1) * (x1 - x3)); const ua = ua_num / den; const ub = ub_num / den; const tolerance = 1e-6; return ua >= -tolerance && ua <= 1 + tolerance && ub >= -tolerance && ub <= 1 + tolerance; }
+        function findNearestBunker(x, y) { /* ... same ... */ let nearestBunker = null; let minDistanceSq = Infinity; for (const bunker of bunkers) { const bunkerCenterX = bunker.x + bunker.width / 2; const bunkerCenterY = bunker.y + bunker.height / 2; const distanceSq = (x - bunkerCenterX)**2 + (y - bunkerCenterY)**2; if (distanceSq < minDistanceSq) { minDistanceSq = distanceSq; nearestBunker = bunker; } } return nearestBunker; }
+        function getTeamById(id) { return teams.find(team => team.id === id); }
+
+        // --- Collision Detection ---
+        const COLLISION_RADIUS = PLAYER_RADIUS * 0.9; // Use slightly smaller radius for collision than drawing
+        function isCollidingWithBunker(x, y, radius = COLLISION_RADIUS) { /* ... same ... */ for (const bunker of bunkers) { const closestX = Math.max(bunker.x, Math.min(x, bunker.x + bunker.width)); const closestY = Math.max(bunker.y, Math.min(y, bunker.y + bunker.height)); const dist = Math.hypot(x - closestX, y - closestY); if (dist < radius) return true; } return false; }
+        function getCollidingBunker(x, y, radius = COLLISION_RADIUS) { /* ... same ... */ for (const bunker of bunkers) { const closestX = Math.max(bunker.x, Math.min(x, bunker.x + bunker.width)); const closestY = Math.max(bunker.y, Math.min(y, bunker.y + bunker.height)); const dist = Math.hypot(x - closestX, y - closestY); if (dist < radius) return bunker; } return null; }
+
+        // --- Line of Sight ---
+        function hasLineOfSight(x1, y1, x2, y2) { /* ... same ... */ for (const bunker of bunkers) { const rect = { x: bunker.x, y: bunker.y, width: bunker.width, height: bunker.height }; const bunkerCenterX = rect.x + rect.width / 2; const bunkerCenterY = rect.y + rect.height / 2; if (distToSegmentSquared(x1, y1, x2, y2, bunkerCenterX, bunkerCenterY) < Math.max(rect.width, rect.height)**2 * 1.5) { if (lineIntersectsRect(x1, y1, x2, y2, rect)) return false; } } return true; }
+
+        // --- Bunker Setup Functions ---
+        const addBunker = (name, props) => { /* ... same ... */ const bunker = { name, shape: 'rect', ...props }; bunkers.push(bunker); if (name) bunkerLookup[name] = bunker; };
+        const addSymmetrical = (baseName, props) => { /* ... same ... */ const w = canvas.width; const BSM = BUNKER_SIZE_MULTIPLIER; const adjustedX = props.x + (props.width / BSM - props.width) / 2; const adjustedY = props.y + (props.height / BSM - props.height) / 2; const mirroredX = w - adjustedX - props.width; addBunker(`${baseName}_L`, { ...props, x: adjustedX, y: adjustedY }); addBunker(`${baseName}_R`, { ...props, x: mirroredX, y: adjustedY }); };
+        function setupBunkersNXL2023() { /* ... same ... */ bunkers.length = 0; bunkerLookup = {}; const w = canvas.width; const h = canvas.height; const BSM = BUNKER_SIZE_MULTIPLIER; console.log(`Setting up bunkers: NXL 2023 on ${w}x${h}`); const smallCanW = w * 0.03 * BSM; const smallCanH = h * 0.06 * BSM; const tallCanW = w * 0.035 * BSM; const tallCanH = h * 0.12 * BSM; const brickW = w * 0.06 * BSM; const brickH = h * 0.06 * BSM; const templeW = w * 0.05 * BSM; const templeH = h * 0.15 * BSM; const doritoW = w * 0.05 * BSM; const doritoH = h * 0.15 * BSM; const snakeBeamW = w * 0.12 * BSM; const snakeBeamH = h * 0.05 * BSM; const centerBaseW = w * 0.08 * BSM; const centerBaseH = h * 0.18 * BSM; addSymmetrical('backCorner', { x: w * 0.05, y: h * 0.1, width: brickW * 1.2, height: brickH * 1.2 }); addSymmetrical('backCornerSnake', { x: w * 0.05, y: h * 0.9 - brickH * 1.2, width: brickW * 1.2, height: brickH * 1.2 }); addBunker('backCenter_T', { x: w * 0.5 - tallCanW / 2, y: h * 0.05, width: tallCanW, height: tallCanH }); addBunker('backCenter_B', { x: w * 0.5 - tallCanW / 2, y: h * 0.95 - tallCanH, width: tallCanW, height: tallCanH }); addSymmetrical('snakeSide', { x: w * 0.08, y: h * 0.75, width: brickW, height: brickH }); addSymmetrical('snake1', { x: w * 0.2, y: h * 0.95 - snakeBeamH, width: snakeBeamW, height: snakeBeamH }); addSymmetrical('snake2', { x: w * 0.35, y: h * 0.95 - snakeBeamH, width: snakeBeamW * 0.8, height: snakeBeamH }); addSymmetrical('snakeMini', { x: w * 0.15, y: h * 0.8, width: smallCanW, height: smallCanH }); addSymmetrical('snakeBackCan', { x: w*0.18, y: h * 0.9 - smallCanH, width: smallCanW, height: smallCanH}); addSymmetrical('dorito1', { x: w * 0.15, y: h * 0.15, width: doritoW, height: doritoH }); addSymmetrical('dorito2', { x: w * 0.28, y: h * 0.08, width: doritoW, height: doritoH }); addSymmetrical('doritoSideCan', { x: w * 0.18, y: h * 0.3, width: smallCanW, height: smallCanH }); addSymmetrical('doritoFwdCan', { x: w * 0.35, y: h * 0.2, width: smallCanW, height: smallCanH }); addBunker('centerBase', { x: w * 0.5 - centerBaseW / 2, y: h * 0.5 - centerBaseH / 2, width: centerBaseW, height: centerBaseH }); addSymmetrical('temple', { x: w * 0.38, y: h * 0.5 - templeH / 2, width: templeW, height: templeH }); addSymmetrical('midCakeD', { x: w * 0.3, y: h * 0.35, width: brickW, height: brickH }); addSymmetrical('midCakeS', { x: w * 0.3, y: h * 0.65 - brickH, width: brickW, height: brickH }); addSymmetrical('midCanD', { x: w * 0.42, y: h * 0.25, width: smallCanW, height: smallCanH }); addSymmetrical('midCanS', { x: w * 0.42, y: h * 0.75 - smallCanH, width: smallCanW, height: smallCanH }); }
+        function setupBunkersNXL2020() { /* ... same ... */ bunkers.length = 0; bunkerLookup = {}; const w = canvas.width; const h = canvas.height; const BSM = BUNKER_SIZE_MULTIPLIER; console.log(`Setting up bunkers: NXL 2020 on ${w}x${h}`); const smallCanW = w * 0.03 * BSM; const smallCanH = h * 0.06 * BSM; const tallCakeW = w * 0.06 * BSM; const tallCakeH = h * 0.12 * BSM; const brickW = w * 0.06 * BSM; const brickH = h * 0.06 * BSM; const doritoW = w * 0.05 * BSM; const doritoH = h * 0.15 * BSM; const snakeBeamW = w * 0.12 * BSM; const snakeBeamH = h * 0.05 * BSM; const centerBaseW = w * 0.05 * BSM; const centerBaseH = h * 0.18 * BSM; const pinW = w * 0.02 * BSM; const pinH = h * 0.04 * BSM; addSymmetrical('backCornerTCK', { x: w * 0.05, y: h * 0.1, width: tallCakeW, height: tallCakeH }); addBunker('backCenterTCK_T', { x: w * 0.5 - tallCakeW / 2, y: h * 0.05, width: tallCakeW, height: tallCakeH }); addBunker('backCenterTCK_B', { x: w * 0.5 - tallCakeW / 2, y: h * 0.95 - tallCakeH, width: tallCakeW, height: tallCakeH }); addSymmetrical('snake1', { x: w * 0.15, y: h * 0.95 - snakeBeamH, width: snakeBeamW * 0.8, height: snakeBeamH }); addSymmetrical('snake2', { x: w * 0.3, y: h * 0.95 - snakeBeamH, width: snakeBeamW * 0.8, height: snakeBeamH }); addSymmetrical('snake3', { x: w * 0.4, y: h * 0.95 - snakeBeamH, width: snakeBeamW * 0.5, height: snakeBeamH }); addSymmetrical('snakeMiniCake', { x: w * 0.08, y: h * 0.75, width: brickW*0.8, height: brickH*0.8 }); addSymmetrical('dorito1', { x: w * 0.1, y: h * 0.2, width: doritoW, height: doritoH }); addSymmetrical('dorito2', { x: w * 0.25, y: h * 0.1, width: doritoW, height: doritoH }); addSymmetrical('dorito3', { x: w * 0.38, y: h * 0.05, width: doritoW, height: doritoH }); addSymmetrical('doritoMiniCake', { x: w * 0.08, y: h * 0.25, width: brickW*0.8, height: brickH*0.8 }); addBunker('centerBaseTop', { x: w * 0.5 - centerBaseW / 2, y: h * 0.3 - centerBaseH / 2, width: centerBaseW, height: centerBaseH }); addBunker('centerBaseBottom', { x: w * 0.5 - centerBaseW / 2, y: h * 0.7 - centerBaseH / 2, width: centerBaseW, height: centerBaseH }); addSymmetrical('centerPin1', { x: w * 0.4, y: h * 0.35, width: pinW, height: pinH }); addSymmetrical('centerPin2', { x: w * 0.4, y: h * 0.65 - pinH, width: pinW, height: pinH }); addSymmetrical('midBrick1', { x: w * 0.2, y: h * 0.65, width: brickW, height: brickH }); addSymmetrical('midBrick2', { x: w * 0.35, y: h * 0.5 - brickH/2, width: brickW, height: brickH }); }
+        // NEW: World Cup Layout Setup
+        function setupBunkersWorldCup() {
+            bunkers.length = 0; bunkerLookup = {};
+            const w = canvas.width; const h = canvas.height; const BSM = BUNKER_SIZE_MULTIPLIER;
+            console.log(`Setting up bunkers: NXL World Cup on ${w}x${h}`);
+
+            // Define bunker dimensions (adjust as needed based on image)
+            const doritoW = w * 0.05 * BSM; const doritoH = h * 0.15 * BSM;
+            const canW = w * 0.035 * BSM; const canH = h * 0.10 * BSM; // Slightly shorter cans
+            const brickW = w * 0.06 * BSM; const brickH = h * 0.06 * BSM;
+            const beamW = w * 0.15 * BSM; const beamH = h * 0.05 * BSM;
+            const centerW = w * 0.08 * BSM; const centerH = h * 0.12 * BSM; // Central structure
+
+            // Back Row (Symmetrical Doritos, Center Beam)
+            addSymmetrical('backCornerD', { x: w * 0.08, y: h * 0.1, width: doritoW, height: doritoH });
+            addSymmetrical('backMiniD', { x: w * 0.2, y: h * 0.08, width: doritoW * 0.8, height: doritoH * 0.8 });
+            addBunker('backCenterBeam', { x: w * 0.5 - beamW / 2, y: h * 0.1, width: beamW, height: beamH });
+
+            // Dorito Side (Top)
+            addSymmetrical('doritoSideCan', { x: w * 0.05, y: h * 0.3, width: canW, height: canH });
+            addSymmetrical('doritoFwdD', { x: w * 0.15, y: h * 0.25, width: doritoW, height: doritoH });
+            addSymmetrical('doritoMidCan', { x: w * 0.3, y: h * 0.2, width: canW, height: canH });
+
+            // Snake Side (Bottom)
+            addSymmetrical('snakeCornerBrick', { x: w * 0.05, y: h * 0.9 - brickH, width: brickW, height: brickH });
+            addSymmetrical('snake1', { x: w * 0.15, y: h * 0.95 - beamH, width: beamW, height: beamH });
+            addSymmetrical('snake2', { x: w * 0.32, y: h * 0.95 - beamH, width: beamW * 0.7, height: beamH });
+            addSymmetrical('snakeSideCan', { x: w * 0.25, y: h * 0.8, width: canW, height: canH });
+
+            // Mid Field
+            addSymmetrical('midBrickD', { x: w * 0.38, y: h * 0.35, width: brickW, height: brickH });
+            addSymmetrical('midBrickS', { x: w * 0.38, y: h * 0.65 - brickH, width: brickW, height: brickH });
+
+            // Center Structures (Approximation)
+            addBunker('centerTop', { x: w * 0.5 - centerW / 2, y: h * 0.35 - centerH / 2, width: centerW, height: centerH });
+            addBunker('centerBottom', { x: w * 0.5 - centerW / 2, y: h * 0.65 - centerH / 2, width: centerW, height: centerH });
+            addSymmetrical('centerMiniCan', { x: w*0.45, y: h*0.5 - canH*0.4/2, width: canW*0.8, height: canH*0.8}); // Small cans near center line
+
+        }
+
+
+        // --- Player Creation ---
+        function createPlayer(teamData, isUserP1 = false, isUserP2 = false) { /* ... same ... */ const isAnyUser = isUserP1 || isUserP2; const player = { x: 0, y: 0, color: teamData.color, team: teamData, speed: PLAYER_SPEED, dx: 0, dy: 0, isUser: isAnyUser, isPlayer1: isUserP1, isPlayer2: isUserP2, isEliminated: false, outlineColor: isAnyUser ? '#fff' : null, facingAngle: teamData === selectedUserTeam ? 0 : Math.PI, eliminationTimestamp: null, isMoving: false, animationBobOffset: 0, ai: { state: isAnyUser ? 'userControlled' : 'spawning', lastMoveTime: 0, lastShootTime: 0, targetX: 0, targetY: 0, targetBunker: null, moving: false } }; return player; }
+
+        // --- Shooting ---
+        function shootPaintball(shooter, targetX, targetY) { /* ... same ... */ if (shooter.isEliminated || !gameActive) return; const angle = Math.atan2(targetY - shooter.y, targetX - shooter.x); shooter.facingAngle = angle; const markerTipOffsetX = Math.cos(angle) * (PLAYER_SPRITE_WIDTH * 0.5 + PLAYER_MARKER_LENGTH); const markerTipOffsetY = Math.sin(angle) * (PLAYER_SPRITE_WIDTH * 0.5 + PLAYER_MARKER_LENGTH); const muzzleX = shooter.x + markerTipOffsetX; const muzzleY = shooter.y + markerTipOffsetY; paintballs.push({ x: muzzleX, y: muzzleY, radius: PAINTBALL_RADIUS, color: shooter.color, dx: Math.cos(angle) * PAINTBALL_SPEED, dy: Math.sin(angle) * PAINTBALL_SPEED, team: shooter.team }); createMuzzleFlash(muzzleX, muzzleY, shooter.color); playSound('shoot'); }
+        function handleUserShoot(event) { /* ... same ... */ if (!soundsReady) { Tone.start().then(setupSounds); } if (!gameActive || !userPlayer || userPlayer.isEliminated) return; event.preventDefault(); let clickX, clickY; const rect = canvas.getBoundingClientRect(); if (event.touches && event.touches.length > 0) { clickX = event.touches[0].clientX - rect.left; clickY = event.touches[0].clientY - rect.top; } else { clickX = event.clientX - rect.left; clickY = event.clientY - rect.top; } clickX *= canvas.width / rect.width; clickY *= canvas.height / rect.height; shootPaintball(userPlayer, clickX, clickY); }
+        canvas.addEventListener('click', handleUserShoot); canvas.addEventListener('touchstart', handleUserShoot);
+        function handlePlayer2Shoot() { /* ... same ... */ if (!gameActive || !player2 || player2.isEliminated) return; const angle = player2.facingAngle; const targetX = player2.x + Math.cos(angle) * 10000; const targetY = player2.y + Math.sin(angle) * 10000; shootPaintball(player2, targetX, targetY); }
+
+        // --- Splat Creation ---
+        function createSplat(x, y, color) { /* ... same ... */ const splat = { x: x, y: y, color: color, radius: SPLAT_RADIUS_BASE + (Math.random() * SPLAT_RADIUS_VARIANCE * 2) - SPLAT_RADIUS_VARIANCE, creationTime: Date.now(), duration: SPLAT_DURATION + (Math.random() * 500) - 250 }; splats.push(splat); }
+
+        // --- Graphics Effect Creation Functions ---
+        function createMuzzleFlash(x, y, color) { /* ... same ... */ muzzleFlashes.push({ x: x, y: y, color: color, radius: MUZZLE_FLASH_RADIUS, creationTime: Date.now(), duration: MUZZLE_FLASH_DURATION }); }
+        function createImpactParticles(x, y, color, count) { /* ... same ... */ for (let i = 0; i < count; i++) { const angle = Math.random() * Math.PI * 2; const speed = PARTICLE_SPEED * (0.5 + Math.random() * 0.8); particles.push({ x: x, y: y, dx: Math.cos(angle) * speed, dy: Math.sin(angle) * speed, radius: PARTICLE_RADIUS * (0.8 + Math.random() * 0.4), color: color, creationTime: Date.now(), duration: PARTICLE_DURATION * (0.7 + Math.random() * 0.6) }); } }
+        function createPaintballTrail(x, y, color) { /* ... same ... */ paintballTrails.push({ x: x, y: y, radius: TRAIL_PARTICLE_RADIUS, color: color, creationTime: Date.now(), duration: TRAIL_PARTICLE_DURATION }); }
+
+        // --- Drawing Functions ---
+        function drawBunkers() { /* ... same with texture lines ... */ const highlightOffset = 1.5; const highlightColor = 'rgba(255, 255, 255, 0.15)'; const shadowColor = 'rgba(0, 0, 0, 0.2)'; const textureLineColor = 'rgba(0, 0, 0, 0.08)'; const textureLineSpacing = 8; bunkers.forEach(bunker => { const gradient = ctx.createLinearGradient(bunker.x, bunker.y, bunker.x + bunker.width, bunker.y + bunker.height); gradient.addColorStop(0, '#A08C61'); gradient.addColorStop(1, '#8C7A51'); ctx.fillStyle = gradient; ctx.fillRect(bunker.x, bunker.y, bunker.width, bunker.height); ctx.strokeStyle = highlightColor; ctx.lineWidth = highlightOffset; ctx.beginPath(); ctx.moveTo(bunker.x + highlightOffset / 2, bunker.y + bunker.height - highlightOffset / 2); ctx.lineTo(bunker.x + highlightOffset / 2, bunker.y + highlightOffset / 2); ctx.lineTo(bunker.x + bunker.width - highlightOffset / 2, bunker.y + highlightOffset / 2); ctx.stroke(); ctx.strokeStyle = shadowColor; ctx.lineWidth = highlightOffset; ctx.beginPath(); ctx.moveTo(bunker.x + bunker.width - highlightOffset / 2, bunker.y + highlightOffset / 2); ctx.lineTo(bunker.x + bunker.width - highlightOffset / 2, bunker.y + bunker.height - highlightOffset / 2); ctx.lineTo(bunker.x + highlightOffset / 2, bunker.y + bunker.height - highlightOffset / 2); ctx.stroke(); ctx.save(); ctx.strokeStyle = textureLineColor; ctx.lineWidth = 0.75; ctx.beginPath(); ctx.rect(bunker.x, bunker.y, bunker.width, bunker.height); ctx.clip(); const maxDim = Math.max(bunker.width, bunker.height) * 1.5; for (let i = -maxDim; i < maxDim; i += textureLineSpacing) { ctx.moveTo(bunker.x + i, bunker.y); ctx.lineTo(bunker.x + i + maxDim, bunker.y + maxDim); } ctx.stroke(); ctx.restore(); ctx.strokeStyle = '#5A4D35'; ctx.lineWidth = 1.5; ctx.strokeRect(bunker.x, bunker.y, bunker.width, bunker.height); }); }
+        function drawPlayer(player) { /* ... same sprite drawing logic ... */ ctx.save(); if (!player.isEliminated) { ctx.fillStyle = `rgba(0, 0, 0, ${SHADOW_ALPHA})`; ctx.beginPath(); ctx.ellipse(player.x + SHADOW_OFFSET_X, player.y + SHADOW_OFFSET_Y, PLAYER_SPRITE_WIDTH * 0.5, PLAYER_SPRITE_WIDTH * 0.25, 0, 0, Math.PI * 2); ctx.fill(); } ctx.globalAlpha = player.isEliminated ? 0.4 : 1.0; ctx.translate(player.x, player.y); ctx.rotate(player.facingAngle); let bobOffset = 0; if (player.isMoving && !player.isEliminated) { const animationCycle = Math.sin((globalAnimationFrameCounter + team1Players.indexOf(player) * 5 + team2Players.indexOf(player) * 5) / PLAYER_ANIMATION_SPEED); bobOffset = animationCycle * 1.5; } ctx.translate(0, bobOffset); ctx.fillStyle = player.color; ctx.fillRect(-PLAYER_SPRITE_WIDTH / 2, -PLAYER_SPRITE_HEIGHT / 2, PLAYER_SPRITE_WIDTH, PLAYER_SPRITE_HEIGHT); ctx.fillStyle = '#555'; ctx.fillRect(PLAYER_SPRITE_WIDTH * 0.3, -PLAYER_MARKER_WIDTH / 2, PLAYER_MARKER_LENGTH, PLAYER_MARKER_WIDTH); if (player.outlineColor && !player.isEliminated) { ctx.strokeStyle = player.outlineColor; ctx.lineWidth = 2; ctx.strokeRect(-PLAYER_SPRITE_WIDTH / 2, -PLAYER_SPRITE_HEIGHT / 2, PLAYER_SPRITE_WIDTH, PLAYER_SPRITE_HEIGHT); ctx.strokeRect(PLAYER_SPRITE_WIDTH * 0.3, -PLAYER_MARKER_WIDTH / 2, PLAYER_MARKER_LENGTH, PLAYER_MARKER_WIDTH); } ctx.rotate(-player.facingAngle); ctx.translate(0, -bobOffset); if (player.isEliminated && player.eliminationTimestamp && Date.now() - player.eliminationTimestamp < ELIMINATION_CUE_DURATION) { ctx.strokeStyle = 'red'; ctx.lineWidth = 3; ctx.lineCap = 'butt'; const xSize = PLAYER_SPRITE_WIDTH * 0.6; ctx.beginPath(); ctx.moveTo(-xSize, -xSize); ctx.lineTo(xSize, xSize); ctx.stroke(); ctx.beginPath(); ctx.moveTo(xSize, -xSize); ctx.lineTo(-xSize, xSize); ctx.stroke(); } ctx.restore(); }
+        function drawPaintballs() { /* ... same ... */ paintballs.forEach(paintball => { ctx.beginPath(); ctx.arc(paintball.x, paintball.y, paintball.radius, 0, Math.PI * 2); const gradient = ctx.createRadialGradient( paintball.x, paintball.y, paintball.radius * 0.1, paintball.x, paintball.y, paintball.radius ); gradient.addColorStop(0, 'rgba(255, 255, 255, 0.3)'); gradient.addColorStop(1, paintball.color); ctx.fillStyle = gradient; ctx.fill(); }); }
+        function drawSplats() { /* ... same ... */ const now = Date.now(); splats.forEach(splat => { const age = now - splat.creationTime; const alpha = 1.0 - Math.min(1.0, age / splat.duration); if (alpha <= 0) return; ctx.save(); ctx.globalAlpha = alpha * 0.8; ctx.fillStyle = splat.color; ctx.beginPath(); ctx.moveTo(splat.x + splat.radius, splat.y); const points = 8; let prevX = splat.x + splat.radius; let prevY = splat.y; for (let i = 1; i <= points; i++) { const angle = (i / points) * Math.PI * 2; const randomOffset = splat.radius * (0.7 + Math.random() * 0.6); const px = splat.x + Math.cos(angle) * randomOffset; const py = splat.y + Math.sin(angle) * randomOffset; const midX = (prevX + px) / 2; const midY = (prevY + py) / 2; ctx.quadraticCurveTo(prevX, prevY, midX, midY); prevX = px; prevY = py; } ctx.closePath(); ctx.fill(); ctx.restore(); }); }
+        function drawMuzzleFlashes() { /* ... same ... */ const now = Date.now(); muzzleFlashes.forEach(flash => { const age = now - flash.creationTime; const alpha = 1.0 - Math.min(1.0, age / flash.duration); if (alpha <= 0) return; ctx.save(); ctx.globalAlpha = alpha; ctx.fillStyle = flash.color; ctx.strokeStyle = 'white'; ctx.lineWidth = 1; const spikes = 5; const outerRadius = flash.radius * (1 + alpha); const innerRadius = outerRadius * 0.5; ctx.beginPath(); ctx.moveTo(flash.x, flash.y - outerRadius); for (let i = 0; i < spikes; i++) { let rot = Math.PI / spikes; ctx.lineTo(flash.x + Math.cos(rot * (i*2+1)) * outerRadius, flash.y + Math.sin(rot * (i*2+1)) * outerRadius); ctx.lineTo(flash.x + Math.cos(rot * (i*2+2)) * innerRadius, flash.y + Math.sin(rot * (i*2+2)) * innerRadius); } ctx.closePath(); ctx.fill(); ctx.stroke(); ctx.restore(); }); }
+        function drawParticles() { /* ... same ... */ const now = Date.now(); particles.forEach(p => { const age = now - p.creationTime; const alpha = 1.0 - Math.min(1.0, age / p.duration); if (alpha <= 0) return; ctx.save(); ctx.globalAlpha = alpha; ctx.fillStyle = p.color; ctx.beginPath(); ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2); ctx.fill(); ctx.restore(); }); }
+        function drawPaintballTrails() { /* ... same ... */ const now = Date.now(); paintballTrails.forEach(trail => { const age = now - trail.creationTime; const alpha = 0.5 * (1.0 - Math.min(1.0, age / trail.duration)); if (alpha <= 0) return; ctx.save(); ctx.globalAlpha = alpha; ctx.fillStyle = trail.color; ctx.beginPath(); ctx.arc(trail.x, trail.y, trail.radius, 0, Math.PI * 2); ctx.fill(); ctx.restore(); }); }
+
+
+        // --- Update Functions ---
+        function updatePlayer(player) {
+            if (player.isEliminated || !gameActive) { player.isMoving = false; return; }
+            let targetDx = 0; let targetDy = 0; const now = Date.now(); let repulsionDx = 0; let repulsionDy = 0;
+            player.isMoving = false;
+
+            // --- Player 1 Movement Input ---
+            if (player.isPlayer1) {
+                if (keyStates.p1Up) targetDy = -player.speed; if (keyStates.p1Down) targetDy = player.speed;
+                if (keyStates.p1Left) targetDx = -player.speed; if (keyStates.p1Right) targetDx = player.speed;
+                if (targetDx !== 0 && targetDy !== 0) { const factor = 0.7071; targetDx *= factor; targetDy *= factor; }
+            }
+            // --- Player 2 Movement Input ---
+            else if (player.isPlayer2) {
+                if (keyStates.p2Up) targetDy = -player.speed; if (keyStates.p2Down) targetDy = player.speed;
+                if (keyStates.p2Left) targetDx = -player.speed; if (keyStates.p2Right) targetDx = player.speed;
+                if (targetDx !== 0 && targetDy !== 0) { const factor = 0.7071; targetDx *= factor; targetDy *= factor; }
+            }
+            // --- AI Player Logic ---
+            else { /* ... same AI logic ... */ const state = player.ai.state; const teammates = (player.team === selectedUserTeam) ? team1Players : team2Players; teammates.forEach(teammate => { if (player === teammate || teammate.isEliminated) return; const distSq = (player.x - teammate.x)**2 + (player.y - teammate.y)**2; if (distSq < TEAMMATE_REPULSION_DISTANCE**2 && distSq > 0) { const dist = Math.sqrt(distSq); const repelForce = (TEAMMATE_REPULSION_DISTANCE - dist) / TEAMMATE_REPULSION_DISTANCE; repulsionDx += (player.x - teammate.x) / dist * repelForce * TEAMMATE_REPULSION_FORCE; repulsionDy += (player.y - teammate.y) / dist * repelForce * TEAMMATE_REPULSION_FORCE; } }); if (state === 'runningInitial' && player.ai.targetBunker) { const targetBunker = player.ai.targetBunker; const targetPointX = targetBunker.x + targetBunker.width / 2 + (player.team === selectedUserTeam ? COLLISION_RADIUS * 1.5 : -COLLISION_RADIUS * 1.5); const targetPointY = targetBunker.y + targetBunker.height / 2 + (Math.random() - 0.5) * targetBunker.height * 0.4; const distToTarget = Math.hypot(targetPointX - player.x, targetPointY - player.y); if (distToTarget < COLLISION_RADIUS * 1.5) { player.ai.state = 'patrolling'; player.ai.moving = false; player.ai.lastMoveTime = now; } else { const angle = Math.atan2(targetPointY - player.y, targetPointX - player.x); targetDx = Math.cos(angle) * player.speed * 1.2; targetDy = Math.sin(angle) * player.speed * 1.2; player.ai.moving = true; } } else if (state === 'patrolling') { if (now - player.ai.lastMoveTime > AI_MOVE_INTERVAL) { player.ai.lastMoveTime = now + Math.random() * 500; const centerDistX = Math.abs(player.x - canvas.width / 2); if (centerDistX > canvas.width * 0.25 && Math.random() < 0.6) { player.ai.targetX = canvas.width / 2 + (Math.random() - 0.5) * 100; player.ai.targetY = player.y + (Math.random() - 0.5) * 50; } else { player.ai.targetX = player.x + (Math.random() - 0.5) * AI_MOVE_TARGET_RANGE * 2; player.ai.targetY = player.y + (Math.random() - 0.5) * AI_MOVE_TARGET_RANGE * 2; } player.ai.targetX = Math.max(COLLISION_RADIUS * 2, Math.min(canvas.width - COLLISION_RADIUS * 2, player.ai.targetX)); player.ai.targetY = Math.max(COLLISION_RADIUS * 2, Math.min(canvas.height - COLLISION_RADIUS * 2, player.ai.targetY)); player.ai.moving = true; } if (player.ai.moving) { const distToTarget = Math.hypot(player.ai.targetX - player.x, player.ai.targetY - player.y); if (distToTarget > COLLISION_RADIUS * 1.5) { const angle = Math.atan2(player.ai.targetY - player.y, player.ai.targetX - player.x); targetDx = Math.cos(angle) * player.speed; targetDy = Math.sin(angle) * player.speed; } else { player.ai.moving = false; } } } if (state !== 'spawning' && state !== 'runningInitial' && now - player.ai.lastShootTime > AI_SHOOT_INTERVAL) { player.ai.lastShootTime = now + Math.random() * 50; const opponents = (player.team === selectedUserTeam) ? team2Players : team1Players; let bestTarget = null; let minDistance = AI_VIEW_RANGE; opponents.forEach(opponent => { if (!opponent.isEliminated) { const dist = Math.hypot(player.x - opponent.x, player.y - opponent.y); if (dist < minDistance && hasLineOfSight(player.x, player.y, opponent.x, opponent.y)) { minDistance = dist; bestTarget = opponent; } } }); if (bestTarget) shootPaintball(player, bestTarget.x, bestTarget.y); } targetDx += repulsionDx; targetDy += repulsionDy; }
+
+            // --- Update Facing Angle & Moving Flag ---
+            if (Math.abs(targetDx) > 0.1 || Math.abs(targetDy) > 0.1) { player.facingAngle = Math.atan2(targetDy, targetDx); player.isMoving = true; }
+
+            // --- Calculate Final Movement ---
+            let finalDx = 0, finalDy = 0;
+            if (targetDx !== 0 || targetDy !== 0) { /* ... same speed calculation ... */ const magnitude = Math.hypot(targetDx, targetDy); const currentSpeed = (player.ai?.state === 'runningInitial' && !player.isUser ? player.speed * 1.2 : player.speed); const effectiveSpeed = Math.min(currentSpeed, magnitude > 0 ? magnitude : currentSpeed); if (magnitude > 1e-6) { finalDx = (targetDx / magnitude) * effectiveSpeed; finalDy = (targetDy / magnitude) * effectiveSpeed; } }
+            player.dx = finalDx; player.dy = finalDy;
+            if (Math.abs(finalDx) < 0.1 && Math.abs(finalDy) < 0.1) { player.isMoving = false; }
+
+            // --- Calculate Next Position & Collision ---
+            let nextX = player.x + finalDx; let nextY = player.y + finalDy;
+            // Boundary Collision
+            if (nextX - COLLISION_RADIUS < 0) nextX = COLLISION_RADIUS; if (nextX + COLLISION_RADIUS > canvas.width) nextX = canvas.width - COLLISION_RADIUS; if (nextY - COLLISION_RADIUS < 0) nextY = COLLISION_RADIUS; if (nextY + COLLISION_RADIUS > canvas.height) nextY = canvas.height - COLLISION_RADIUS;
+            // Bunker Collision
+            let collidedBunker = getCollidingBunker(nextX, nextY);
+            if (collidedBunker) { /* ... same collision resolution & sliding logic ... */ const closestX = Math.max(collidedBunker.x, Math.min(nextX, collidedBunker.x + collidedBunker.width)); const closestY = Math.max(collidedBunker.y, Math.min(nextY, collidedBunker.y + collidedBunker.height)); const collisionDx = nextX - closestX; const collisionDy = nextY - closestY; const collisionDist = Math.hypot(collisionDx, collisionDy); const normCollisionDx = (collisionDist > 0) ? collisionDx / collisionDist : 0; const normCollisionDy = (collisionDist > 0) ? collisionDy / collisionDist : 0; const overlap = COLLISION_RADIUS - collisionDist; const pushBackAmount = (overlap > 0 ? overlap : 0) + 1.5; nextX = player.x + normCollisionDx * pushBackAmount; nextY = player.y + normCollisionDy * pushBackAmount; if (finalDx !== 0 || finalDy !== 0) { const moveMagnitude = Math.hypot(finalDx, finalDy); if (moveMagnitude > 1e-6) { const normMoveDx = finalDx / moveMagnitude; const normMoveDy = finalDy / moveMagnitude; const nudgeX = -normMoveDy * COLLISION_NUDGE_FACTOR * player.speed; const nudgeY = normMoveDx * COLLISION_NUDGE_FACTOR * player.speed; if (!getCollidingBunker(nextX + nudgeX, nextY + nudgeY)) { nextX += nudgeX; nextY += nudgeY; } else if (!getCollidingBunker(nextX - nudgeX, nextY - nudgeY)) { nextX -= nudgeX; nextY -= nudgeY; } } } if (!player.isUser) { player.ai.moving = false; if(player.ai.state === 'runningInitial') { player.ai.state = 'patrolling'; player.ai.lastMoveTime = now; } } player.isMoving = false; }
+            // Player-Player Collision
+            const allPlayers = [...team1Players, ...team2Players];
+            allPlayers.forEach(other => { if (player === other || other.isEliminated) return; const dist = Math.hypot(nextX - other.x, nextY - other.y); if (dist < COLLISION_RADIUS + COLLISION_RADIUS) { const collideDx = nextX - other.x; const collideDy = nextY - other.y; const collideDist = dist > 0 ? dist : 1; const normCollideDx = collideDx / collideDist; const normCollideDy = collideDy / collideDist; const overlap = (COLLISION_RADIUS + COLLISION_RADIUS) - collideDist; const pushAmount = (overlap / 2) + 0.1; nextX = player.x + normCollideDx * pushAmount; nextY = player.y + normCollideDy * pushAmount; const nudgeForce = 0.3; const nudgeX = -normCollideDy * nudgeForce; const nudgeY = normCollideDx * nudgeForce; if (!getCollidingBunker(nextX + nudgeX, nextY + nudgeY)) { nextX += nudgeX; nextY += nudgeY; } else if (!getCollidingBunker(nextX - nudgeX, nextY - nudgeY)) { nextX -= nudgeX; nextY -= nudgeY; } if (!player.isUser) player.ai.moving = false; player.isMoving = false; } });
+
+            // Apply Final Position
+            player.x = nextX; player.y = nextY;
+        }
+        function updatePaintballs() { /* ... same logic, using createImpactParticles ... */ for (let i = paintballs.length - 1; i >= 0; i--) { const p = paintballs[i]; const prevX = p.x; const prevY = p.y; p.x += p.dx; p.y += p.dy; let removed = false; createPaintballTrail(prevX - p.dx * 0.2, prevY - p.dy * 0.2, p.color); if (p.x + p.radius < 0 || p.x - p.radius > canvas.width || p.y + p.radius < 0 || p.y - p.radius > canvas.height) { paintballs.splice(i, 1); removed = true; continue; } if (isCollidingWithBunker(p.x, p.y, p.radius)) { createSplat(p.x, p.y, '#a0aec0'); createImpactParticles(p.x, p.y, '#a0aec0', PARTICLE_COUNT_HIT / 2); paintballs.splice(i, 1); removed = true; playSound('hitBunker', 'C2'); continue; } const targetTeamArray = (p.team === selectedUserTeam) ? team2Players : team1Players; for (let j = targetTeamArray.length - 1; j >= 0; j--) { const player = targetTeamArray[j]; if (!player.isEliminated) { const dist = Math.hypot(p.x - player.x, p.y - player.y); if (dist < p.radius + COLLISION_RADIUS) { createSplat(p.x, p.y, p.color); createImpactParticles(p.x, p.y, p.color, PARTICLE_COUNT_HIT); player.isEliminated = true; player.eliminationTimestamp = Date.now(); paintballs.splice(i, 1); removed = true; playSound('hitPlayer', 'A3', '8n'); if (player.team === selectedUserTeam) team1Score--; else team2Score--; updateScoreDisplay(); checkWinCondition(); break; } } } } }
+        function updateSplats() { /* ... same ... */ const now = Date.now(); for (let i = splats.length - 1; i >= 0; i--) { const splat = splats[i]; if (now - splat.creationTime > splat.duration) { splats.splice(i, 1); } } }
+        function updateParticles() { /* ... same ... */ const now = Date.now(); for (let i = particles.length - 1; i >= 0; i--) { const p = particles[i]; p.x += p.dx; p.y += p.dy; if (now - p.creationTime > p.duration) { particles.splice(i, 1); } } }
+        function updateMuzzleFlashes() { /* ... same ... */ const now = Date.now(); for (let i = muzzleFlashes.length - 1; i >= 0; i--) { if (now - muzzleFlashes[i].creationTime > muzzleFlashes[i].duration) { muzzleFlashes.splice(i, 1); } } }
+        function updatePaintballTrails() { /* ... same ... */ const now = Date.now(); for (let i = paintballTrails.length - 1; i >= 0; i--) { if (now - paintballTrails[i].creationTime > paintballTrails[i].duration) { paintballTrails.splice(i, 1); } } }
+
+        // --- Timer ---
+        function startTimer() { /* ... same ... */ if (timerIntervalId) clearInterval(timerIntervalId); timeRemaining = selectedRoundTime; updateTimerDisplay(); timerIntervalId = setInterval(() => { if (!gameActive) { clearInterval(timerIntervalId); return; } timeRemaining--; updateTimerDisplay(); if (timeRemaining <= 0) { clearInterval(timerIntervalId); timerIntervalId = null; endGameByTime(); } }, 1000); }
+        function updateTimerDisplay() { /* ... same ... */ timerDisplayElement.textContent = `Time: ${timeRemaining}`; }
+
+        // --- Score and Win Condition ---
+        function updateScoreDisplay() { /* ... same ... */ scoreTeam1Element.textContent = `${selectedUserTeam.name}: ${team1Score}`; scoreTeam1Element.style.color = selectedUserTeam.color; scoreTeam2Element.textContent = `${selectedOpponentTeam.name}: ${team2Score}`; scoreTeam2Element.style.color = selectedOpponentTeam.color; overallScoreDisplayElement.textContent = `Round: ${currentRoundNumber} / ${selectedRoundsPerMatch} | Wins: ${selectedUserTeam.name} ${team1GamesWon} - ${selectedOpponentTeam.name} ${team2GamesWon}`; }
+        function checkWinCondition() { /* ... same ... */ if (!gameActive) return; if (team2Score <= 0) { team1GamesWon++; endGame(`${selectedUserTeam.name} Wins Round ${currentRoundNumber}!`); } else if (team1Score <= 0) { team2GamesWon++; endGame(`${selectedOpponentTeam.name} Wins Round ${currentRoundNumber}!`); } }
+        function endGameByTime() { /* ... same ... */ if (!gameActive) return; let message = `Time's Up! Round ${currentRoundNumber} Over! `; if (team1Score > team2Score) { message += `${selectedUserTeam.name} Wins!`; team1GamesWon++; } else if (team2Score > team1Score) { message += `${selectedOpponentTeam.name} Wins!`; team2GamesWon++; } else { message += "It's a Draw!"; } endGame(message); }
+        function endGame(roundEndMessage) { /* ... same logic with sound ... */ if (!gameActive) return; gameActive = false; gameStateElement.textContent = "Round Over"; if (timerIntervalId) { clearInterval(timerIntervalId); timerIntervalId = null; } if (animationFrameId) { cancelAnimationFrame(animationFrameId); animationFrameId = null; } updateScoreDisplay(); let userTeamWonRound = roundEndMessage.includes(selectedUserTeam.name + " Wins"); let opponentTeamWonRound = roundEndMessage.includes(selectedOpponentTeam.name + " Wins"); if (userTeamWonRound) { playSound('win', 'C4', '4n'); playSound('win', 'E4', '4n', '+0.2'); playSound('win', 'G4', '2n', '+0.4'); } else if (opponentTeamWonRound) { playSound('lose', 'G3', '4n'); playSound('lose', 'E3', '4n', '+0.2'); playSound('lose', 'C3', '2n', '+0.4'); } else { playSound('lose', 'E3', '2n'); } if (currentRoundNumber >= selectedRoundsPerMatch) { let matchWinnerMessage = "\n\n** MATCH OVER! **\n"; if (team1GamesWon > team2GamesWon) { matchWinnerMessage += `${selectedUserTeam.name} wins the match ${team1GamesWon} - ${team2GamesWon}!`; } else if (team2GamesWon > team1GamesWon) { matchWinnerMessage += `${selectedOpponentTeam.name} wins the match ${team2GamesWon} - ${team1GamesWon}!`; } else { matchWinnerMessage += `Match ends in a draw ${team1GamesWon} - ${team2GamesWon}!`; } showMessage(roundEndMessage + matchWinnerMessage + "\nClick Menu to play again.", 0); gameStateElement.textContent = "Match Over"; } else { showMessage(roundEndMessage + `\nStarting Round ${currentRoundNumber + 1}...`, NEXT_ROUND_DELAY - 500); setTimeout(() => { currentRoundNumber++; init(); }, NEXT_ROUND_DELAY); } }
+
+        // --- Game Loop ---
+        function gameLoop() { /* ... same ... */ animationFrameId = requestAnimationFrame(gameLoop); if (!gameActive) return; globalAnimationFrameCounter++; ctx.clearRect(0, 0, canvas.width, canvas.height); team1Players.forEach(updatePlayer); team2Players.forEach(updatePlayer); updatePaintballs(); updateSplats(); updateParticles(); updateMuzzleFlashes(); updatePaintballTrails(); drawBunkers(); drawSplats(); drawPaintballTrails(); drawParticles(); team1Players.forEach(drawPlayer); team2Players.forEach(drawPlayer); drawPaintballs(); drawMuzzleFlashes(); }
+
+        // --- Initialization ---
+        function init() {
+            console.log(`Initializing Round ${currentRoundNumber} / ${selectedRoundsPerMatch} (Mode: ${selectedGameMode})`);
+            gameActive = false;
+            if (animationFrameId) { cancelAnimationFrame(animationFrameId); animationFrameId = null; }
+            if (timerIntervalId) { clearInterval(timerIntervalId); timerIntervalId = null; }
+            messageBox.style.display = 'none';
+            resizeCanvas();
+            // UPDATED: Switch case for map layout
+            switch (selectedMapLayout) {
+                case 'nxl_2023': setupBunkersNXL2023(); break;
+                case 'nxl_2020': setupBunkersNXL2020(); break;
+                case 'nxl_world_cup': setupBunkersWorldCup(); break; // Added case
+                default: console.error("Unknown map layout selected:", selectedMapLayout); setupBunkersNXL2023();
+            }
+            team1Score = selectedPlayerCount; team2Score = selectedPlayerCount;
+            updateScoreDisplay();
+            gameStateElement.textContent = "Game State: Running";
+            // Clear dynamic objects
+            paintballs.length = 0; splats.length = 0;
+            team1Players.length = 0; team2Players.length = 0;
+            userPlayer = null; player2 = null; // Reset player references
+            particles.length = 0; muzzleFlashes.length = 0; paintballTrails.length = 0;
+
+            // Update and show/hide P2 controls info based on game mode and current bindings
+            updateInfoPanelControls(); // Update text based on current controls object
+            p2ControlsInfo.style.display = (selectedGameMode === '2P') ? 'block' : 'none';
+
+            const w = canvas.width; const h = canvas.height;
+            const startXPadding = w * 0.05;
+            const playerSpacingY = Math.min(h * 0.18, h / (selectedPlayerCount + 1));
+            const startYOffset = h * 0.5 - (playerSpacingY * (selectedPlayerCount -1) / 2);
+            // UPDATED: Start Bunker Definitions for AI
+            let team1StartBunkers = []; let team2StartBunkers = [];
+            if (selectedMapLayout === 'nxl_2023') { team1StartBunkers = ['backCornerSnake_L', 'snakeSide_L', 'midCakeS_L', 'temple_L', 'dorito1_L', 'backCorner_L', 'snake1_L', 'midCanS_L', 'doritoSideCan_L', 'midCanD_L']; team2StartBunkers = ['backCornerSnake_R', 'snakeSide_R', 'midCakeS_R', 'temple_R', 'dorito1_R', 'backCorner_R', 'snake1_R', 'midCanS_R', 'doritoSideCan_R', 'midCanD_R']; }
+            else if (selectedMapLayout === 'nxl_2020') { team1StartBunkers = ['backCornerTCK_L', 'snakeMiniCake_L', 'midBrick1_L', 'doritoMiniCake_L', 'dorito1_L', 'snake1_L', 'midBrick2_L', 'centerPin1_L', 'dorito2_L', 'snake2_L']; team2StartBunkers = ['backCornerTCK_R', 'snakeMiniCake_R', 'midBrick1_R', 'doritoMiniCake_R', 'dorito1_R', 'snake1_R', 'midBrick2_R', 'centerPin1_R', 'dorito2_R', 'snake2_R']; }
+            else if (selectedMapLayout === 'nxl_world_cup') { team1StartBunkers = ['snakeCornerBrick_L', 'snake1_L', 'midBrickS_L', 'centerBottom', 'doritoFwdD_L', 'backCornerD_L', 'snake2_L', 'centerMiniCan_L', 'doritoSideCan_L', 'doritoMidCan_L']; team2StartBunkers = ['snakeCornerBrick_R', 'snake1_R', 'midBrickS_R', 'centerBottom', 'doritoFwdD_R', 'backCornerD_R', 'snake2_R', 'centerMiniCan_R', 'doritoSideCan_R', 'doritoMidCan_R']; }
+
+
+            // Player creation loop
+            const player2Index = Math.floor(selectedPlayerCount / 2); // Index for P2 if needed
+            for (let i = 0; i < selectedPlayerCount; i++) {
+                const yPos = startYOffset + i * playerSpacingY;
+                const isPlayer1 = (i === player2Index); // P1 is middle player on team 1
+                const isPlayer2 = (selectedGameMode === '2P' && i === player2Index); // P2 is middle player on team 2 in 2P mode
+
+                // Create Team 1 Player
+                const team1P = createPlayer(selectedUserTeam, isPlayer1, false); // Never P2
+                team1P.x = startXPadding; team1P.y = yPos;
+                let attempts = 0; while (isCollidingWithBunker(team1P.x, team1P.y) && attempts < 10) { team1P.x += COLLISION_RADIUS; attempts++; }
+                if (team1P.isPlayer1) {
+                    userPlayer = team1P; // Assign P1 reference
+                } else if (!team1P.isUser) { // Assign AI target if not P1
+                    if (team1StartBunkers.length > 0) { const bunkerName = team1StartBunkers[i % team1StartBunkers.length]; team1P.ai.targetBunker = bunkerLookup[bunkerName] || findNearestBunker(team1P.x, team1P.y); team1P.ai.state = team1P.ai.targetBunker ? 'runningInitial' : 'patrolling'; } else { team1P.ai.state = 'patrolling'; }
+                }
+                team1Players.push(team1P);
+
+                // Create Team 2 Player
+                const team2P = createPlayer(selectedOpponentTeam, false, isPlayer2); // Check if this is P2
+                team2P.x = w - startXPadding; team2P.y = yPos;
+                attempts = 0; while (isCollidingWithBunker(team2P.x, team2P.y) && attempts < 10) { team2P.x -= COLLISION_RADIUS; attempts++; }
+                if (team2P.isPlayer2) {
+                    player2 = team2P; // Assign P2 reference
+                    player2.outlineColor = '#fff'; // Give P2 an outline too
+                } else if (!team2P.isUser) { // Assign AI target if not P2
+                    if (team2StartBunkers.length > 0) { const bunkerName = team2StartBunkers[i % team2StartBunkers.length]; team2P.ai.targetBunker = bunkerLookup[bunkerName] || findNearestBunker(team2P.x, team2P.y); team2P.ai.state = team2P.ai.targetBunker ? 'runningInitial' : 'patrolling'; } else { team2P.ai.state = 'patrolling'; }
+                }
+                team2Players.push(team2P);
+            }
+            gameActive = true;
+            if (currentRoundNumber === 1) { showMessage("Game Start!", 1500); } else { showMessage(`Round ${currentRoundNumber}!`, 1500); }
+            playSound('start', 'C5', '16n');
+            startTimer();
+            if (!animationFrameId) { gameLoop(); }
+        }
+
+        // --- Utility to show temporary messages ---
+        let messageTimeoutId = null;
+        function showMessage(text, duration = 2000) { /* ... same ... */ messageBox.textContent = text; messageBox.style.display = 'block'; if (messageTimeoutId) clearTimeout(messageTimeoutId); if (duration > 0) { messageTimeoutId = setTimeout(() => { if (messageBox.textContent === text) messageBox.style.display = 'none'; }, duration); } else { messageTimeoutId = null; } }
+
+        // --- Canvas Resizing ---
+        function resizeCanvas() { /* ... same ... */ const container = document.querySelector('.game-container'); if (!container) return; const containerPadding = 32; const availableWidth = container.clientWidth - containerPadding; const topPanelHeight = document.querySelector('.top-panel')?.offsetHeight || 60; const bottomPanelHeight = document.querySelector('.bottom-panel')?.offsetHeight || 60; const gaps = 16; const containerVPadding = 32; const availableHeight = window.innerHeight - topPanelHeight - bottomPanelHeight - gaps - containerVPadding; const aspectRatio = 16 / 9; let canvasWidth = availableWidth; let canvasHeight = canvasWidth / aspectRatio; if (canvasHeight > availableHeight) { canvasHeight = availableHeight; canvasWidth = canvasHeight * aspectRatio; } const maxWidth = 1200; if (canvasWidth > maxWidth) { canvasWidth = maxWidth; canvasHeight = canvasWidth / aspectRatio; } const newWidth = Math.max(320, Math.floor(canvasWidth)); const newHeight = Math.max(180, Math.floor(canvasHeight)); if (canvas.width !== newWidth || canvas.height !== newHeight) { canvas.width = newWidth; canvas.height = newHeight; console.log(`Canvas resized to ${newWidth}x${newHeight}. Bunkers will be reset on next init/reset.`); } }
+        window.addEventListener('resize', resizeCanvas);
+
+        // --- Stop Game and Return to Menu ---
+        function returnToMenu() { /* ... same cleanup, including new effect arrays ... */ console.log("Returning to menu..."); gameActive = false; if (animationFrameId) { cancelAnimationFrame(animationFrameId); animationFrameId = null; } if (timerIntervalId) { clearInterval(timerIntervalId); timerIntervalId = null; } if (messageTimeoutId) { clearTimeout(messageTimeoutId); messageTimeoutId = null; } gameContainer.classList.remove('active'); startMenu.style.display = 'flex'; team1GamesWon = 0; team2GamesWon = 0; currentRoundNumber = 1; updateScoreDisplay(); team1Players.length = 0; team2Players.length = 0; userPlayer = null; player2 = null; /* Reset P2 */ paintballs.length = 0; splats.length = 0; bunkers.length = 0; bunkerLookup = {}; particles.length = 0; muzzleFlashes.length = 0; paintballTrails.length = 0; gameStateElement.textContent = "Game State: Ready"; timerDisplayElement.textContent = "Time: 0"; messageBox.style.display = 'none'; p2ControlsInfo.style.display = 'none'; /* Hide P2 controls info */ }
+
+        // --- Reset Button ---
+        resetButton.addEventListener('click', () => { /* ... same ... */ if (gameActive || gameStateElement.textContent === "Match Over") { console.log("Resetting current round/match setup."); if (gameStateElement.textContent === "Match Over") { currentRoundNumber = 1; team1GamesWon = 0; team2GamesWon = 0; } init(); } else { console.log("Game not active, reset does nothing until game started."); } });
+
+        // --- Menu Button ---
+        menuButton.addEventListener('click', returnToMenu);
+
+        // --- Mute Button Event Listener ---
+        muteButton.addEventListener('click', () => {
+            if (!soundsReady) {
+                Tone.start().then(setupSounds).then(() => {
+                     isMuted = !isMuted; Tone.Destination.mute = isMuted;
+                     muteButton.textContent = isMuted ? 'Unmute' : 'Mute';
+                     muteButton.classList.toggle('muted', isMuted);
+                     console.log("Sound toggled:", isMuted ? "Muted" : "Unmuted");
+                });
+            } else {
+                 isMuted = !isMuted; Tone.Destination.mute = isMuted;
+                 muteButton.textContent = isMuted ? 'Unmute' : 'Mute';
+                 muteButton.classList.toggle('muted', isMuted);
+                 console.log("Sound toggled:", isMuted ? "Muted" : "Unmuted");
+            }
+        });
+
+        // --- Control Remapping Logic ---
+        function updateControlDisplay(action, key) { /* ... same ... */ const displayId = action.replace(/[A-Z]/g, letter => `-${letter.toLowerCase()}`) + '-key'; const displayElement = document.getElementById(displayId); if (displayElement) { let displayKey = key; if (key === ' ') displayKey = 'Space'; if (key.startsWith('Arrow')) displayKey = key.substring(5); displayElement.textContent = displayKey; displayElement.classList.remove('rebinding'); } }
+        function updateAllControlDisplays() { /* ... same ... */ for (const action in controls) { updateControlDisplay(action, controls[action]); } updateInfoPanelControls(); }
+        function handleRebindKeyPress(e) { /* ... same ... */ e.preventDefault(); const newKey = e.key; if (newKey === 'Escape') { console.log("Rebind cancelled."); } else { console.log(`Rebinding ${actionToRebind} to ${newKey}`); controls[actionToRebind] = newKey; updateControlDisplay(actionToRebind, newKey); updateInfoPanelControls(); } document.removeEventListener('keydown', temporaryKeyListener, true); temporaryKeyListener = null; isRebinding = false; actionToRebind = null; document.querySelectorAll('.change-key-button').forEach(btn => btn.disabled = false); }
+        controlsSection.addEventListener('click', (e) => { /* ... same ... */ if (e.target.classList.contains('change-key-button')) { if (isRebinding) return; actionToRebind = e.target.dataset.action; const displayId = actionToRebind.replace(/[A-Z]/g, letter => `-${letter.toLowerCase()}`) + '-key'; const displayElement = document.getElementById(displayId); if (displayElement) { displayElement.textContent = 'Press Key...'; displayElement.classList.add('rebinding'); isRebinding = true; document.querySelectorAll('.change-key-button').forEach(btn => btn.disabled = true); temporaryKeyListener = (event) => handleRebindKeyPress(event); document.addEventListener('keydown', temporaryKeyListener, { capture: true, once: true }); } } });
+        resetControlsButton.addEventListener('click', () => { /* ... same ... */ if (isRebinding) return; console.log("Resetting controls to default"); controls = { ...defaultControls }; updateAllControlDisplays(); });
+        function updateInfoPanelControls() { /* ... same ... */ p1ControlsInfo.textContent = `P1: ${controls.p1Up}/${controls.p1Left}/${controls.p1Down}/${controls.p1Right} + Click`; p2ControlsInfo.textContent = `P2: ${controls.p2Up}/${controls.p2Left}/${controls.p2Down}/${controls.p2Right} + ${controls.p2Shoot}`; }
+
+
+        // --- Start Menu Logic ---
+        startButton.addEventListener('click', () => {
+            if (isRebinding) { alert("Please finish rebinding keys first or press Escape to cancel."); return; }
+            if (!soundsReady) { Tone.start().then(setupSounds); }
+            selectedGameMode = document.querySelector('input[name="gameMode"]:checked').value;
+            console.log("Selected Game Mode:", selectedGameMode);
+            /* ... same validation and option reading ... */ const count = parseInt(playerCountInput.value, 10); if (isNaN(count) || count < parseInt(playerCountInput.min) || count > parseInt(playerCountInput.max)) { alert(`Please enter a player count between ${playerCountInput.min} and ${playerCountInput.max}.`); return; } selectedPlayerCount = count; const time = parseInt(timeLimitInput.value, 10); if (isNaN(time) || time < parseInt(timeLimitInput.min) || time > parseInt(timeLimitInput.max)) { alert(`Please enter a time limit between ${timeLimitInput.min} and ${timeLimitInput.max} seconds.`); return; } selectedRoundTime = time; const rounds = parseInt(roundsInput.value, 10); if (isNaN(rounds) || rounds < parseInt(roundsInput.min) || rounds > parseInt(roundsInput.max)) { alert(`Please enter rounds per match between ${roundsInput.min} and ${roundsInput.max}.`); return; } selectedRoundsPerMatch = rounds; selectedMapLayout = mapLayoutInput.value; const userTeamId = userTeamSelect.value; const opponentTeamId = opponentTeamSelect.value; if (userTeamId === opponentTeamId) { alert("Please select different teams for user and opponent."); return; } selectedUserTeam = getTeamById(userTeamId); selectedOpponentTeam = getTeamById(opponentTeamId); if (!selectedUserTeam || !selectedOpponentTeam) { alert("Error selecting teams. Please try again."); return; } team1GamesWon = 0; team2GamesWon = 0; currentRoundNumber = 1; startMenu.style.display = 'none'; gameContainer.classList.add('active'); init();
+        });
+
+        // --- Populate Team Select Dropdowns ---
+        function populateTeamSelects() { /* ... same ... */ userTeamSelect.innerHTML = ''; opponentTeamSelect.innerHTML = ''; teams.forEach((team, index) => { const optionUser = document.createElement('option'); optionUser.value = team.id; optionUser.textContent = team.name; optionUser.style.backgroundColor = '#2d3748'; optionUser.style.color = team.color; userTeamSelect.appendChild(optionUser); const optionOpponent = document.createElement('option'); optionOpponent.value = team.id; optionOpponent.textContent = team.name; optionOpponent.style.backgroundColor = '#2d3748'; optionOpponent.style.color = team.color; opponentTeamSelect.appendChild(optionOpponent); if (index === 0) userTeamSelect.value = team.id; if (index === 1) opponentTeamSelect.value = team.id; }); }
+
+        // --- Initial Setup on Page Load ---
+        window.onload = function() {
+            populateTeamSelects();
+            updateScoreDisplay();
+            resizeCanvas();
+            updateAllControlDisplays(); // NEW: Update control displays on load
+            console.log("Game ready. Waiting for start menu.");
+        };
+
+    </script>
+
+</body>
+</html>
